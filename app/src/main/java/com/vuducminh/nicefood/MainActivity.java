@@ -31,16 +31,14 @@ import com.google.firebase.database.ValueEventListener;
 import com.vuducminh.nicefood.Common.Common;
 import com.vuducminh.nicefood.Common.CommonAgr;
 import com.vuducminh.nicefood.Model.UserModel;
-import com.vuducminh.nicefood.Remote.ICloudFunction;
-import com.vuducminh.nicefood.Remote.RetrofitICloudClient;
+
 
 import java.util.Arrays;
 import java.util.List;
 
 import dmax.dialog.SpotsDialog;
 import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.functions.Consumer;
-import okhttp3.ResponseBody;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -48,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth.AuthStateListener listener;
     private AlertDialog dialog;
     private CompositeDisposable compositeDisposable = new CompositeDisposable();
-    private ICloudFunction iCloudFunction;
+//    private ICloudFunction iCloudFunction;
     private List<AuthUI.IdpConfig> providers;
 
     private DatabaseReference userRef;
@@ -82,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
         userRef = FirebaseDatabase.getInstance().getReference(CommonAgr.USER_REFERENCES);
         firebaseAuth = FirebaseAuth.getInstance();
         dialog = new SpotsDialog.Builder().setCancelable(false).setContext(this).build();
-        iCloudFunction = RetrofitICloudClient.getInstance().create(ICloudFunction.class);
+//        iCloudFunction = RetrofitICloudClient.getInstance().create(ICloudFunction.class);
         listener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
@@ -186,6 +184,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void goToHomeActivity(UserModel userModel) {
         Common.currentUser = userModel;
+        startActivity(new Intent(MainActivity.this,HomeActivity.class));
+        finish();
     }
 
     private void phoneLogin() {
