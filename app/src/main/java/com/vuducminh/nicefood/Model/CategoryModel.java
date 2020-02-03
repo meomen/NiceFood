@@ -4,16 +4,16 @@ import java.util.List;
 
 public class CategoryModel {
     private String menu_id,name,image;
-    List<FoodModel> listfood;
+    List<FoodModel> foods;
 
     public CategoryModel() {
     }
 
-    public CategoryModel(String menu_id, String name, String image, List<FoodModel> listfood) {
+    public CategoryModel(String menu_id, String name, String image, List<FoodModel> foods) {
         this.menu_id = menu_id;
         this.name = name;
         this.image = image;
-        this.listfood = listfood;
+        this.foods = foods;
     }
 
     public String getMenu_id() {
@@ -40,11 +40,11 @@ public class CategoryModel {
         this.image = image;
     }
 
-    public List<FoodModel> getListfood() {
-        return listfood;
+    public List<FoodModel> getFoods() {
+        return foods;
     }
 
-    public void setListfood(List<FoodModel> listfood) {
-        this.listfood = listfood;
+    public void setFoods(List<FoodModel> foods) {
+        this.foods = foods;
     }
 }
