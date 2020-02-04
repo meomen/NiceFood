@@ -14,7 +14,7 @@
     <string name="menu_home">Home</string>
     <string name="menu_food_detail">Food Detail</string>
     <string name="menu_tools">Tools</string>
-    <string name="menu_share">Share</string>
+    <string name="menu_cart">Cart</string>
     <string name="menu_food_list">Food List</string>
 
 
@@ -24,6 +24,9 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="menu_slideshow">Slideshow</string>
     <string name="menu_menu">Categories</string>
+
+    <string name="size">Size</string>
+    <string name="add_on"> Addon</string>
 
 
 </resources>
