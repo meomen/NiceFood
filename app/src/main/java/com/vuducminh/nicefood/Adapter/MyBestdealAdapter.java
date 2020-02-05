@@ -9,8 +9,11 @@ import android.widget.TextView;
 
 import com.asksira.loopingviewpager.LoopingPagerAdapter;
 import com.bumptech.glide.Glide;
+import com.vuducminh.nicefood.EventBus.BestDealItemClick;
 import com.vuducminh.nicefood.Model.BestDealModel;
 import com.vuducminh.nicefood.R;
+
+import org.greenrobot.eventbus.EventBus;
 
 import java.util.List;
 
@@ -43,5 +46,11 @@ public class MyBestdealAdapter extends LoopingPagerAdapter<BestDealModel> {
         Glide.with(convertView).load(itemList.get(listPosition).getImage()).into(img_best_deal);
         tv_best_deal.setText(itemList.get(listPosition).getName());
 
+        convertView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                EventBus.getDefault().postSticky(new BestDealItemClick(itemList.get(listPosition)));
+            }
+        });
     }
 }

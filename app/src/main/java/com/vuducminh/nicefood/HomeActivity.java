@@ -1,5 +1,7 @@
 package com.vuducminh.nicefood;
 
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 
 import com.andremion.counterfab.CounterFab;
@@ -10,20 +12,31 @@ import android.view.MenuItem;
 import android.view.View;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.vuducminh.nicefood.Common.Common;
+import com.vuducminh.nicefood.Common.CommonAgr;
 import com.vuducminh.nicefood.Database.CartDataSource;
 import com.vuducminh.nicefood.Database.CartDatabase;
 import com.vuducminh.nicefood.Database.LocalCartDataSource;
+import com.vuducminh.nicefood.EventBus.BestDealItemClick;
 import com.vuducminh.nicefood.EventBus.CategoryClick;
 import com.vuducminh.nicefood.EventBus.CountCartEvent;
 import com.vuducminh.nicefood.EventBus.FoodItemClick;
 import com.vuducminh.nicefood.EventBus.HideFABCart;
+import com.vuducminh.nicefood.EventBus.PopluarCategoryClick;
+import com.vuducminh.nicefood.Model.CategoryModel;
+import com.vuducminh.nicefood.Model.FoodModel;
 
 import androidx.drawerlayout.widget.DrawerLayout;
 
@@ -31,6 +44,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.view.Menu;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.greenrobot.eventbus.EventBus;
@@ -39,6 +53,7 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import dmax.dialog.SpotsDialog;
 import io.reactivex.Scheduler;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -51,6 +66,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private DrawerLayout drawer;
     private NavController navController;
     private CartDataSource cartDataSource;
+
+    private android.app.AlertDialog dialog;
 
     @BindView(R.id.fab)
     CounterFab fab;
@@ -65,6 +82,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+        dialog = new SpotsDialog.Builder().setContext(this).setCancelable(false).build();
 
         ButterKnife.bind(this);
 
@@ -93,6 +112,10 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         NavigationUI.setupWithNavController(navigationView, navController);
         navigationView.setNavigationItemSelectedListener(this);
         navigationView.bringToFront();
+
+        View headerView = navigationView.getHeaderView(0);
+        TextView tv_user = (TextView) headerView.findViewById(R.id.tv_user);
+        Common.setSpanString("Hey, ",Common.currentUser.getName(),tv_user);
 
         coutCartItem();
     }
@@ -128,9 +151,43 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 navController.navigate(R.id.nav_cart);
                 break;
             }
+            case R.id.nav_sign_out: {
+                signoOut();
+                break;
+            }
 
         }
         return true;
+    }
+
+    private void signoOut() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Signout")
+                .setMessage("Do you really want to sign out?")
+                .setNegativeButton("CANCLE", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                })
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                        Common.selectedFood = null;
+                        Common.categorySelected = null;
+                        Common.currentUser = null;
+
+                        FirebaseAuth.getInstance().signOut();
+
+                        Intent intent = new Intent(HomeActivity.this,MainActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        finish();
+                    }
+                });
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     // EventBus
@@ -172,6 +229,128 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
+    @Subscribe(sticky = true,threadMode = ThreadMode.MAIN)
+    public void onBestDealItemClick(BestDealItemClick event) {
+        if(event.getBestDealModel() != null) {
+
+            dialog.show();
+
+            FirebaseDatabase.getInstance()
+                    .getReference(CommonAgr.CATEGORY_REF)
+                    .child(event.getBestDealModel().getMenu_id())
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            if(dataSnapshot.exists()) {
+
+
+                                FirebaseDatabase.getInstance()
+                                        .getReference(CommonAgr.CATEGORY_REF)
+                                        .child(event.getBestDealModel().getMenu_id())
+                                        .child(CommonAgr.FOOD_REF)
+                                        .orderByChild("id")
+                                        .equalTo(event.getBestDealModel().getFood_id())
+                                        .limitToLast(1)
+                                        .addListenerForSingleValueEvent(new ValueEventListener() {
+                                            @Override
+                                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                                if(dataSnapshot.exists()) {
+                                                    for (DataSnapshot itemSnapshot:dataSnapshot.getChildren()) {
+                                                        Common.selectedFood = itemSnapshot.getValue(FoodModel.class);
+                                                    }
+                                                    navController.navigate(R.id.nav_food_detail);
+                                                }
+                                                else {
+                                                    Toast.makeText(HomeActivity.this,"Item doesn't exists",Toast.LENGTH_SHORT).show();
+                                                }
+                                                dialog.dismiss();
+                                            }
+
+                                            @Override
+                                            public void onCancelled(@NonNull DatabaseError databaseError) {
+                                                dialog.dismiss();
+                                                Toast.makeText(HomeActivity.this,""+databaseError.getMessage(),Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
+                            }
+                            else {
+                                dialog.dismiss();
+                                Toast.makeText(HomeActivity.this,"Item doesn't exists",Toast.LENGTH_SHORT).show();
+                            }
+
+
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+                            dialog.dismiss();
+                            Toast.makeText(HomeActivity.this,""+databaseError.getMessage(),Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        }
+    }
+
+    @Subscribe(sticky = true,threadMode = ThreadMode.MAIN)
+    public void onPopularItemClick(PopluarCategoryClick event) {
+        if(event.getPopluarCategoryModel() != null) {
+
+            dialog.show();
+
+            FirebaseDatabase.getInstance()
+                    .getReference(CommonAgr.CATEGORY_REF)
+                    .child(event.getPopluarCategoryModel().getMenu_id())
+                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            if(dataSnapshot.exists()) {
+                                Common.categorySelected = dataSnapshot.getValue(CategoryModel.class);
+
+                                FirebaseDatabase.getInstance()
+                                        .getReference(CommonAgr.CATEGORY_REF)
+                                        .child(event.getPopluarCategoryModel().getMenu_id())
+                                        .child(CommonAgr.FOOD_REF)
+                                        .orderByChild("id")
+                                        .equalTo(event.getPopluarCategoryModel().getFood_id())
+                                        .limitToLast(1)
+                                        .addListenerForSingleValueEvent(new ValueEventListener() {
+                                            @Override
+                                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                                if(dataSnapshot.exists()) {
+                                                    for (DataSnapshot itemSnapshot:dataSnapshot.getChildren()) {
+                                                        Common.selectedFood = itemSnapshot.getValue(FoodModel.class);
+                                                    }
+                                                    navController.navigate(R.id.nav_food_detail);
+                                                }
+                                                else {
+                                                    Toast.makeText(HomeActivity.this,"Item doesn't exists",Toast.LENGTH_SHORT).show();
+                                                }
+                                                dialog.dismiss();
+                                            }
+
+                                            @Override
+                                            public void onCancelled(@NonNull DatabaseError databaseError) {
+                                                dialog.dismiss();
+                                                Toast.makeText(HomeActivity.this,""+databaseError.getMessage(),Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
+                            }
+                            else {
+                                dialog.dismiss();
+                                Toast.makeText(HomeActivity.this,"Item doesn't exists",Toast.LENGTH_SHORT).show();
+                            }
+
+
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+                            dialog.dismiss();
+                            Toast.makeText(HomeActivity.this,""+databaseError.getMessage(),Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        }
+    }
+
     // Bắt event counter cart
     @Subscribe(sticky = true,threadMode = ThreadMode.MAIN)
     public void onCartCounter(CountCartEvent event) {
@@ -197,7 +376,12 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
                     @Override
                     public void onError(Throwable e) {
-                        Toast.makeText(HomeActivity.this,"[COUNT CART]"+e.getMessage(),Toast.LENGTH_SHORT).show();
+                        if(!e.getMessage().contains("query returned empty")) {
+                            Toast.makeText(HomeActivity.this,"[COUNT CART]"+e.getMessage(),Toast.LENGTH_SHORT).show();
+                        }
+                        else{
+                            fab.setCount(0);
+                        }
                     }
                 });
     }

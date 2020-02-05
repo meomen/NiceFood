@@ -1,5 +1,12 @@
 package com.vuducminh.nicefood.Common;
 
+import android.graphics.Typeface;
+import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.StyleSpan;
+import android.widget.TextView;
+
 import com.vuducminh.nicefood.Model.AddonModel;
 import com.vuducminh.nicefood.Model.CategoryModel;
 import com.vuducminh.nicefood.Model.FoodModel;
@@ -52,5 +59,15 @@ public class Common {
             }
             return result;
         }
+    }
+
+    public static void setSpanString(String welcome, String name, TextView tv_user) {
+        SpannableStringBuilder builder = new SpannableStringBuilder();
+        builder.append(welcome);
+        SpannableString spannableString = new SpannableString(name);
+        StyleSpan boldSpan = new StyleSpan(Typeface.BOLD);
+        spannableString.setSpan(boldSpan,0,name.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        builder.append(spannableString);
+        tv_user.setText(builder,TextView.BufferType.SPANNABLE);
     }
 }

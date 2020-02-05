@@ -16,4 +16,5 @@ public class CommonAgr {
     public static final int FULL_WIDTH_COLUMN = 1;
 
     public static final String COMMENT_REF = "Comments";
+    public static final String FOOD_REF ="foods" ;
 }
