@@ -20,6 +20,7 @@ import android.widget.Toast;
 import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.IdpResponse;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
@@ -29,6 +30,8 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
@@ -251,10 +254,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void goToHomeActivity(UserModel userModel) {
-        Common.currentUser = userModel;
-        startActivity(new Intent(MainActivity.this,HomeActivity.class));
 
-        finish();
+        FirebaseInstanceId.getInstance()
+                .getInstanceId()
+                .addOnFailureListener(e -> {
+
+                    Toast.makeText(this,""+e.getMessage(),Toast.LENGTH_SHORT).show();
+
+                    Common.currentUser = userModel;
+                    startActivity(new Intent(MainActivity.this,HomeActivity.class));
+                    finish();
+
+                })
+                .addOnCompleteListener(task -> {
+                    Common.currentUser = userModel;
+                    Common.updateToken(MainActivity.this,task.getResult().getToken());
+                    startActivity(new Intent(MainActivity.this,HomeActivity.class));
+                    finish();
+                });
+
 
     }
 

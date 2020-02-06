@@ -18,4 +18,7 @@ public class CommonAgr {
     public static final String COMMENT_REF = "Comments";
     public static final String FOOD_REF ="foods" ;
     public static final String ORDER_REF ="Orders" ;
+    public static final String NOTI_TITLE = "title";
+    public static final String NOTI_CONTENT = "content";
+    public static final String TOKEN_REF = "Tokens";
 }
