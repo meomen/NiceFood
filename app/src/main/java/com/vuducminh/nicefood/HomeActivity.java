@@ -242,7 +242,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         @Override
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                             if(dataSnapshot.exists()) {
-
+                                Common.categorySelected = dataSnapshot.getValue(CategoryModel.class);
+                                Common.categorySelected.setMenu_id(dataSnapshot.getKey());
 
                                 FirebaseDatabase.getInstance()
                                         .getReference(CommonAgr.CATEGORY_REF)
@@ -257,6 +258,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                                 if(dataSnapshot.exists()) {
                                                     for (DataSnapshot itemSnapshot:dataSnapshot.getChildren()) {
                                                         Common.selectedFood = itemSnapshot.getValue(FoodModel.class);
+                                                        Common.selectedFood.setKey(itemSnapshot.getKey());
                                                     }
                                                     navController.navigate(R.id.nav_food_detail);
                                                 }
@@ -304,6 +306,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                             if(dataSnapshot.exists()) {
                                 Common.categorySelected = dataSnapshot.getValue(CategoryModel.class);
+                                Common.categorySelected.setMenu_id(dataSnapshot.getKey());
 
                                 FirebaseDatabase.getInstance()
                                         .getReference(CommonAgr.CATEGORY_REF)
@@ -318,6 +321,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                                 if(dataSnapshot.exists()) {
                                                     for (DataSnapshot itemSnapshot:dataSnapshot.getChildren()) {
                                                         Common.selectedFood = itemSnapshot.getValue(FoodModel.class);
+                                                        Common.selectedFood.setKey(itemSnapshot.getKey());
+
                                                     }
                                                     navController.navigate(R.id.nav_food_detail);
                                                 }
@@ -350,6 +355,14 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     });
         }
     }
+
+    @Subscribe(sticky = true,threadMode = ThreadMode.MAIN)
+    private void countCartAgain(CountCartEvent event) {
+        if(event.isSuccess()) {
+            coutCartItem();
+        }
+    }
+
 
     // Bắt event counter cart
     @Subscribe(sticky = true,threadMode = ThreadMode.MAIN)
@@ -385,4 +398,5 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     }
                 });
     }
+
 }

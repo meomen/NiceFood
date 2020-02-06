@@ -16,12 +16,14 @@ import com.vuducminh.nicefood.Model.UserModel;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.util.List;
+import java.util.Random;
 
 public class Common {
 
     public static UserModel currentUser;
     public static CategoryModel categorySelected;
     public static FoodModel selectedFood;
+    public static String currentToken ="";
 
     public static String formatPrice(double price) {
         if (price != 0) {
@@ -69,5 +71,13 @@ public class Common {
         spannableString.setSpan(boldSpan,0,name.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         builder.append(spannableString);
         tv_user.setText(builder,TextView.BufferType.SPANNABLE);
+    }
+
+    public static String creteOrderNumber() {
+        return new StringBuilder()
+                .append(System.currentTimeMillis())        // Get current time in mini giây
+                .append(Math.abs(new Random().nextInt()))  // Add random number to block same order at same time
+                .toString();
+
     }
 }

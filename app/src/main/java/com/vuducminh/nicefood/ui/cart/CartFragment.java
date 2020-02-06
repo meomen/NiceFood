@@ -1,9 +1,16 @@
 package com.vuducminh.nicefood.ui.cart;
 
+import android.app.Activity;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Color;
+import android.location.Address;
+import android.location.Geocoder;
+import android.location.Location;
 import android.os.Bundle;
+import android.os.Looper;
 import android.os.Parcelable;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -27,8 +34,21 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.braintreepayments.api.dropin.DropInRequest;
+import com.braintreepayments.api.dropin.DropInResult;
+import com.braintreepayments.api.models.PaymentMethodNonce;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.FirebaseDatabase;
 import com.vuducminh.nicefood.Adapter.MyCartAdapter;
 import com.vuducminh.nicefood.Common.Common;
+import com.vuducminh.nicefood.Common.CommonAgr;
 import com.vuducminh.nicefood.Common.MySwiperHelper;
 import com.vuducminh.nicefood.Database.CartDataSource;
 import com.vuducminh.nicefood.Database.CartDatabase;
@@ -37,29 +57,51 @@ import com.vuducminh.nicefood.Database.LocalCartDataSource;
 import com.vuducminh.nicefood.EventBus.CountCartEvent;
 import com.vuducminh.nicefood.EventBus.HideFABCart;
 import com.vuducminh.nicefood.EventBus.UpdateItemInCart;
+import com.vuducminh.nicefood.Model.BraintreeTransaction;
+import com.vuducminh.nicefood.Model.Order;
 import com.vuducminh.nicefood.R;
+import com.vuducminh.nicefood.Remote.ICloudFunction;
+import com.vuducminh.nicefood.Remote.RetrofitICloudClient;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import butterknife.Unbinder;
+import io.reactivex.Single;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Consumer;
+import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 
 public class CartFragment extends Fragment {
+
+    private static final int REQUEST_BAINTREE_CODE = 1999;
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     private Parcelable recyclerViewState;
 
     private CartViewModel cartViewModel;
     private CartDataSource cartDataSource;
+
+    LocationRequest locationRequest;
+    LocationCallback locationCallback;
+    FusedLocationProviderClient fusedLocationProviderClient;
+    Location currentLocation;
+
+    String address,comment;
+
+//    ICloudFunction iCloudFunction;
 
     @BindView(R.id.recycler_cart)
     RecyclerView recycler_cart;
@@ -71,35 +113,40 @@ public class CartFragment extends Fragment {
     CardView group_place_holder;
 
     @OnClick(R.id.btn_place_order)
-    void onPlaceOrderClick(){
+    void onPlaceOrderClick() {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
         builder.setTitle("One more step!");
 
-        View view = LayoutInflater.from(getContext()).inflate(R.layout.layout_place_order,null);
+        View view = LayoutInflater.from(getContext()).inflate(R.layout.layout_place_order, null);
 
-        EditText edt_address = (EditText)view.findViewById(R.id.edt_address);
-        RadioButton rdi_home = (RadioButton)view.findViewById(R.id.rdi_home_address);
-        RadioButton rdi_other_address = (RadioButton)view.findViewById(R.id.rdi_other_address);
-        RadioButton rdi_ship_to_this = (RadioButton)view.findViewById(R.id.rdi_ship_this_address);
-        RadioButton rdi_cod = (RadioButton)view.findViewById(R.id.rdi_cod);
-        RadioButton rdi_braintree = (RadioButton)view.findViewById(R.id.rdi_braintree);
+        EditText edt_address = (EditText) view.findViewById(R.id.edt_address);
+        EditText edt_comment = (EditText) view.findViewById(R.id.edt_comment);
+        TextView tv_address_detail = (TextView) view.findViewById(R.id.tv_address_detail);
+        RadioButton rdi_home = (RadioButton) view.findViewById(R.id.rdi_home_address);
+        RadioButton rdi_other_address = (RadioButton) view.findViewById(R.id.rdi_other_address);
+        RadioButton rdi_ship_to_this = (RadioButton) view.findViewById(R.id.rdi_ship_this_address);
+        RadioButton rdi_cod = (RadioButton) view.findViewById(R.id.rdi_cod);
+        RadioButton rdi_braintree = (RadioButton) view.findViewById(R.id.rdi_braintree);
 
         edt_address.setText(Common.currentUser.getAddress());
 
         rdi_home.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked) {
+                if (isChecked) {
                     edt_address.setText(Common.currentUser.getAddress());
+                    tv_address_detail.setVisibility(View.GONE);
+
                 }
             }
         });
         rdi_other_address.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked) {
+                if (isChecked) {
                     edt_address.setText("");
                     edt_address.setHint("Enter your address");
+                    tv_address_detail.setVisibility(View.GONE);
                 }
             }
         });
@@ -107,12 +154,48 @@ public class CartFragment extends Fragment {
         rdi_ship_to_this.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if(isChecked) {
-                    Toast.makeText(getContext(),"Implement late with API Google",Toast.LENGTH_SHORT).show();
+                if (isChecked) {
+                    fusedLocationProviderClient.getLastLocation()
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Toast.makeText(getContext(), "" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                    tv_address_detail.setVisibility(View.GONE);
+                                }
+                            })
+                            .addOnCompleteListener(new OnCompleteListener<Location>() {
+                                @Override
+                                public void onComplete(@NonNull Task<Location> task) {
+                                    String coordinates = new StringBuilder()
+                                            .append(task.getResult().getLatitude())
+                                            .append("/")
+                                            .append(task.getResult().getLongitude()).toString();
+
+                                    Single<String> singleAddress = Single.just(getAddessFromLatLng(task.getResult().getLatitude(),
+                                            task.getResult().getLongitude()));
+
+                                    Disposable disposable = singleAddress.subscribeWith(new DisposableSingleObserver<String>() {
+                                        @Override
+                                        public void onSuccess(String s) {
+
+                                            edt_address.setText(coordinates);
+                                            tv_address_detail.setText(s);
+                                            tv_address_detail.setVisibility(View.VISIBLE);
+                                        }
+
+                                        @Override
+                                        public void onError(Throwable e) {
+                                            edt_address.setText(coordinates);
+                                            tv_address_detail.setText(e.getMessage());
+                                            tv_address_detail.setVisibility(View.VISIBLE);
+                                        }
+                                    });
+
+                                }
+                            });
                 }
             }
         });
-
 
 
         builder.setView(view);
@@ -124,7 +207,18 @@ public class CartFragment extends Fragment {
         }).setPositiveButton("YES", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                Toast.makeText(getContext(),"Implement late!",Toast.LENGTH_SHORT).show();
+                if(rdi_cod.isChecked()) {
+                    paymentCOD(edt_address.getText().toString(),edt_comment.getText().toString());
+                }
+//                else if(rdi_braintree.isChecked()) {
+//                    address = edt_address.getText().toString();
+//                    comment = edt_comment.getText().toString();
+//
+//                    if(!TextUtils.isEmpty((Common.currentToken))) {
+//                        DropInRequest dropInRequest = new DropInRequest().clientToken(Common.currentToken);
+//                        startActivityForResult(dropInRequest.getIntent(getContext()),REQUEST_BAINTREE_CODE);
+//                    }
+//                }
             }
         });
 
@@ -132,9 +226,13 @@ public class CartFragment extends Fragment {
         dialog.show();
     }
 
+
+
+
     private MyCartAdapter adapter;
 
     private Unbinder unbinder;
+
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -142,30 +240,33 @@ public class CartFragment extends Fragment {
                 ViewModelProviders.of(this).get(CartViewModel.class);
         View root = inflater.inflate(R.layout.fragment_cart, container, false);
 
-        unbinder = ButterKnife.bind(this,root);
+//        iCloudFunction = RetrofitICloudClient.getInstance().create(ICloudFunction.class);
+
+        unbinder = ButterKnife.bind(this, root);
         cartViewModel.initCartDataSource(getContext());
         cartViewModel.getMutableLiveDataItem().observe(this, new Observer<List<CartItem>>() {
             @Override
             public void onChanged(List<CartItem> cartItems) {
-                if(cartItems == null || cartItems.isEmpty()) {
+                if (cartItems == null || cartItems.isEmpty()) {
 
                     recycler_cart.setVisibility(View.GONE);
                     group_place_holder.setVisibility(View.GONE);
                     tv_empty_cart.setVisibility(View.VISIBLE);
-                }
-                else {
+                } else {
                     recycler_cart.setVisibility(View.VISIBLE);
                     group_place_holder.setVisibility(View.VISIBLE);
                     tv_empty_cart.setVisibility(View.GONE);
 
-                    adapter = new MyCartAdapter(getContext(),cartItems);
+                    adapter = new MyCartAdapter(getContext(), cartItems);
                     recycler_cart.setAdapter(adapter);
                 }
             }
         });
         initViews();
+        initLocation();
         return root;
     }
+
 
     private void initViews() {
 
@@ -177,42 +278,70 @@ public class CartFragment extends Fragment {
         recycler_cart.setHasFixedSize(true);
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
         recycler_cart.setLayoutManager(layoutManager);
-        recycler_cart.addItemDecoration(new DividerItemDecoration(getContext(),layoutManager.getOrientation()));
+        recycler_cart.addItemDecoration(new DividerItemDecoration(getContext(), layoutManager.getOrientation()));
 
-        MySwiperHelper mySwiperHelper = new MySwiperHelper(getContext(),recycler_cart,200) {
+        MySwiperHelper mySwiperHelper = new MySwiperHelper(getContext(), recycler_cart, 200) {
             @Override
             public void instantiateMyButton(RecyclerView.ViewHolder viewHolder, List<MyButton> buf) {
 
-                buf.add(new MyButton(getContext(),"Delete",30,0, Color.parseColor("#FF3C30"),
+                buf.add(new MyButton(getContext(), "Delete", 30, 0, Color.parseColor("#FF3C30"),
                         position -> {
-                    CartItem cartItem = adapter.getItemAtPosition(position);
-                    cartDataSource.deleteCartItem(cartItem)
-                            .subscribeOn(Schedulers.io())
-                            .observeOn(AndroidSchedulers.mainThread())
-                            .subscribe(new SingleObserver<Integer>() {
-                                @Override
-                                public void onSubscribe(Disposable d) {
-                                    
-                                }
+                            CartItem cartItem = adapter.getItemAtPosition(position);
+                            cartDataSource.deleteCartItem(cartItem)
+                                    .subscribeOn(Schedulers.io())
+                                    .observeOn(AndroidSchedulers.mainThread())
+                                    .subscribe(new SingleObserver<Integer>() {
+                                        @Override
+                                        public void onSubscribe(Disposable d) {
 
-                                @Override
-                                public void onSuccess(Integer integer) {
-                                    adapter.notifyItemRemoved(position);
-                                    sumAllItemCart(); // update total price
-                                    EventBus.getDefault().postSticky(new CountCartEvent(true));
-                                    Toast.makeText(getContext(),"Delete item from Cart successful!",Toast.LENGTH_SHORT).show();
-                                }
+                                        }
 
-                                @Override
-                                public void onError(Throwable e) {
-                                    Toast.makeText(getContext(),""+e.getMessage(),Toast.LENGTH_SHORT).show();
-                                }
-                            });
+                                        @Override
+                                        public void onSuccess(Integer integer) {
+                                            adapter.notifyItemRemoved(position);
+                                            sumAllItemCart(); // update total price
+                                            EventBus.getDefault().postSticky(new CountCartEvent(true));
+                                            Toast.makeText(getContext(), "Delete item from Cart successful!", Toast.LENGTH_SHORT).show();
+                                        }
+
+                                        @Override
+                                        public void onError(Throwable e) {
+                                            Toast.makeText(getContext(), "" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
                         }));
             }
         };
-        
+
         sumAllItemCart();
+    }
+
+    private void initLocation() {
+        builLocationRequest();
+        builLocationCallback();
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getContext());
+        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
+
+    }
+
+
+    private void builLocationRequest() {
+        locationRequest = new LocationRequest();
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setInterval(5000);
+        locationRequest.setFastestInterval(3000);
+        locationRequest.setSmallestDisplacement(10f);
+
+    }
+
+    private void builLocationCallback() {
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                currentLocation = locationResult.getLastLocation();
+            }
+        };
     }
 
     private void sumAllItemCart() {
@@ -232,8 +361,8 @@ public class CartFragment extends Fragment {
 
                     @Override
                     public void onError(Throwable e) {
-                        if(!e.getMessage().contains("Query returned empty")) {
-                            Toast.makeText(getContext(),""+e.getMessage(),Toast.LENGTH_SHORT).show();
+                        if (!e.getMessage().contains("Query returned empty")) {
+                            Toast.makeText(getContext(), "" + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
@@ -242,7 +371,7 @@ public class CartFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        if(!EventBus.getDefault().isRegistered(this)) {
+        if (!EventBus.getDefault().isRegistered(this)) {
             EventBus.getDefault().register(this);
         }
     }
@@ -251,10 +380,23 @@ public class CartFragment extends Fragment {
     public void onStop() {
         EventBus.getDefault().postSticky(new HideFABCart(false));
         cartViewModel.onStop();
-        if(EventBus.getDefault().isRegistered(this)) {
+        if (EventBus.getDefault().isRegistered(this)) {
             EventBus.getDefault().unregister(this);
         }
+
+        if (fusedLocationProviderClient != null) {
+            fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+        }
+        compositeDisposable.clear();
         super.onStop();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (fusedLocationProviderClient != null) {
+            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
+        }
     }
 
     @Override
@@ -265,31 +407,31 @@ public class CartFragment extends Fragment {
 
     @Override
     public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
-        inflater.inflate(R.menu.cart_menu,menu);
+        inflater.inflate(R.menu.cart_menu, menu);
         super.onCreateOptionsMenu(menu, inflater);
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if(item.getItemId() == R.id.action_clear_cart) {
+        if (item.getItemId() == R.id.action_clear_cart) {
             cartDataSource.cleanCart(Common.currentUser.getUid())
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(new SingleObserver<Integer>() {
                         @Override
                         public void onSubscribe(Disposable d) {
-                            
+
                         }
 
                         @Override
                         public void onSuccess(Integer integer) {
-                            Toast.makeText(getContext(),"Clear Cart Success",Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "Clear Cart Success", Toast.LENGTH_SHORT).show();
                             EventBus.getDefault().postSticky(new CountCartEvent(true));
                         }
 
                         @Override
                         public void onError(Throwable e) {
-                            Toast.makeText(getContext(),""+e.getMessage(),Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "" + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }
                     });
         }
@@ -298,7 +440,7 @@ public class CartFragment extends Fragment {
 
     @Subscribe(sticky = true, threadMode = ThreadMode.MAIN)
     public void onUpdateItemInCartEvent(UpdateItemInCart event) {
-        if(event.getCartItem() != null) {
+        if (event.getCartItem() != null) {
             // Đầu tiên, lưu state của RecyclerView
             recyclerViewState = recycler_cart.getLayoutManager().onSaveInstanceState();
             cartDataSource.updateCartItem(event.getCartItem())
@@ -318,7 +460,7 @@ public class CartFragment extends Fragment {
 
                         @Override
                         public void onError(Throwable e) {
-                            Toast.makeText(getContext(),"[UPDAET CART]"+e.getMessage(),Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "[UPDAET CART]" + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }
                     });
         }
@@ -337,14 +479,218 @@ public class CartFragment extends Fragment {
                     @Override
                     public void onSuccess(Double price) {
                         tv_total_price.setText(new StringBuilder("Total: $")
-                        .append(Common.formatPrice(price)));
+                                .append(Common.formatPrice(price)));
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                        Toast.makeText(getContext(),"[SUM CART]"+e.getMessage(),Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "[SUM CART]" + e.getMessage(), Toast.LENGTH_SHORT).show();
 
                     }
                 });
     }
+
+
+    private String getAddessFromLatLng(double latitude, double longitude) {
+        Geocoder geocoder = new Geocoder(getContext(), Locale.getDefault());
+        String result = "";
+        try {
+            List<Address> addressList = geocoder.getFromLocation(latitude,longitude,1);
+            if(addressList != null && addressList.size() > 0) {
+                Address address = addressList.get(0);
+                StringBuilder sb = new StringBuilder(address.getAddressLine(0));
+                result = sb.toString();
+            }
+            else {
+                result = "Address not found";
+            }
+
+        }
+        catch (IOException e){
+            e.printStackTrace();
+            result = e.getMessage();
+        }
+        return result;
+    }
+
+    private void paymentCOD(String address, String comment) {
+        compositeDisposable.add(cartDataSource.getAllCart(Common.currentUser.getUid())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<List<CartItem>>() {
+                    @Override
+                    public void accept(List<CartItem> cartItems) throws Exception {
+                        cartDataSource.sumPriceInCart(Common.currentUser.getUid())
+                                .subscribeOn(Schedulers.io())
+                                .observeOn(AndroidSchedulers.mainThread())
+                                .subscribe(new SingleObserver<Double>() {
+                                    @Override
+                                    public void onSubscribe(Disposable d) {
+
+                                    }
+
+                                    @Override
+                                    public void onSuccess(Double totalPrice) {
+                                        double finalPrice = totalPrice; // We will modify formuls discount late
+                                        Order order = new Order();
+                                        order.setUserId(Common.currentUser.getUid());
+                                        order.setUserName(Common.currentUser.getName());
+                                        order.setUserPhone(Common.currentUser.getPhone());
+                                        order.setShippingAddress(address);
+                                        order.setCommet(comment);
+
+                                        if(currentLocation != null) {
+                                            order.setLat(currentLocation.getLatitude());
+                                            order.setLng(currentLocation.getLongitude());
+                                        }
+                                        else {
+                                            order.setLat(-0.1f);
+                                            order.setLng(-0.1f);
+                                        }
+
+                                        order.setCartItemList(cartItems);
+                                        order.setTotalPayment(totalPrice);
+                                        order.setDiscount(0);
+                                        order.setFinalPayment(finalPrice);
+                                        order.setCod(true);
+                                        order.setTransactionId("Cash On Delivery");
+
+                                        // Submit this order object to Firebase
+                                        writeOrderToFireBase(order);
+                                    }
+
+                                    @Override
+                                    public void onError(Throwable e) {
+                                        Toast.makeText(getContext(),""+ e.getMessage(),Toast.LENGTH_SHORT).show();
+
+                                    }
+                                });
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Toast.makeText(getContext(),""+ throwable.getMessage(),Toast.LENGTH_SHORT).show();
+                    }
+                })
+        );
+    }
+
+    private void writeOrderToFireBase(Order order) {
+        FirebaseDatabase.getInstance()
+                .getReference(CommonAgr.ORDER_REF)
+                .child(Common.creteOrderNumber())    // Create order number with only digit
+                .setValue(order)
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(getContext(),""+ e.getMessage(),Toast.LENGTH_SHORT).show();
+                    }
+                }).addOnCompleteListener(new OnCompleteListener<Void>() {
+            @Override
+            public void onComplete(@NonNull Task<Void> task) {
+                cartDataSource.cleanCart(Common.currentUser.getUid())
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new SingleObserver<Integer>() {
+                            @Override
+                            public void onSubscribe(Disposable d) {
+
+                            }
+
+                            @Override
+                            public void onSuccess(Integer integer) {
+                                Toast.makeText(getContext(),"Order placed Successfully",Toast.LENGTH_SHORT).show();
+                                EventBus.getDefault().postSticky(new CountCartEvent(true));
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                Toast.makeText(getContext(),""+ e.getMessage(),Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            }
+        });
+    }
+
+//    @Override
+//    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+//        super.onActivityResult(requestCode, resultCode, data);
+//        if(requestCode == REQUEST_BAINTREE_CODE && resultCode == Activity.RESULT_OK) {
+//            DropInResult result = data.getParcelableExtra(DropInResult.EXTRA_DROP_IN_RESULT);
+//            PaymentMethodNonce nonce = result.getPaymentMethodNonce();
+//
+//            // calculate sum cart
+//            cartDataSource.sumPriceInCart(Common.currentUser.getUid())
+//                    .subscribeOn(Schedulers.io())
+//                    .observeOn(AndroidSchedulers.mainThread())
+//                    .subscribe(new SingleObserver<Double>() {
+//                        @Override
+//                        public void onSubscribe(Disposable d) {
+//
+//                        }
+//
+//                        @Override
+//                        public void onSuccess(Double totalPrice) {
+//
+//                            // Get all item in cart to create order
+//                            compositeDisposable.add(cartDataSource.getAllCart(Common.currentUser.getUid())
+//                            .subscribeOn(Schedulers.io())
+//                            .observeOn(AndroidSchedulers.mainThread())
+//                            .subscribe(new Consumer<List<CartItem>>() {
+//                                @Override
+//                                public void accept(List<CartItem> cartItems) throws Exception {
+//                                    //Submit payment
+//                                    compositeDisposable.add(iCloudFunction.submitPayment(totalPrice,
+//                                            nonce.getNonce())
+//                                    .subscribeOn(Schedulers.io())
+//                                    .observeOn(AndroidSchedulers.mainThread())
+//                                    .subscribe(new Consumer<BraintreeTransaction>() {
+//                                        @Override
+//                                        public void accept(BraintreeTransaction braintreeTransaction) throws Exception {
+//                                            if(braintreeTransaction.isSuccess()) {
+//                                                double finalPrice = totalPrice; // We will modify formuls discount late
+//                                                Order order = new Order();
+//                                                order.setUserId(Common.currentUser.getUid());
+//                                                order.setUserName(Common.currentUser.getName());
+//                                                order.setUserPhone(Common.currentUser.getPhone());
+//                                                order.setShippingAddress(address);
+//                                                order.setCommet(comment);
+//
+//                                                if(currentLocation != null) {
+//                                                    order.setLat(currentLocation.getLatitude());
+//                                                    order.setLng(currentLocation.getLongitude());
+//                                                }
+//                                                else {
+//                                                    order.setLat(-0.1f);
+//                                                    order.setLng(-0.1f);
+//                                                }
+//
+//                                                order.setCartItemList(cartItems);
+//                                                order.setTotalPayment(totalPrice);
+//                                                order.setDiscount(0);
+//                                                order.setFinalPayment(finalPrice);
+//                                                order.setCod(false);
+//                                                order.setTransactionId(braintreeTransaction.getTransaction().getId());
+//
+//                                                // Submit this order object to Firebase
+//                                                writeOrderToFireBase(order);
+//                                            }
+//                                        }
+//                                    },throwable -> {
+//                                        Toast.makeText(getContext(),""+throwable.getMessage(),Toast.LENGTH_SHORT).show();
+//                                    }));
+//                                }
+//                            },throwable -> {
+//                                Toast.makeText(getContext(),""+throwable.getMessage(),Toast.LENGTH_SHORT).show();
+//
+//                            }));
+//                        }
+//
+//                        @Override
+//                        public void onError(Throwable e) {
+//                            Toast.makeText(getContext(),""+e.getMessage(),Toast.LENGTH_SHORT).show();
+//                        }
+//                    });
+//        }
+//    }
 }

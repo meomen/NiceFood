@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -28,16 +29,28 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.karumi.dexter.Dexter;
+import com.karumi.dexter.PermissionToken;
+import com.karumi.dexter.listener.PermissionDeniedResponse;
+import com.karumi.dexter.listener.PermissionGrantedResponse;
+import com.karumi.dexter.listener.PermissionRequest;
+import com.karumi.dexter.listener.single.PermissionListener;
 import com.vuducminh.nicefood.Common.Common;
 import com.vuducminh.nicefood.Common.CommonAgr;
+import com.vuducminh.nicefood.Model.BraintreeToken;
 import com.vuducminh.nicefood.Model.UserModel;
+import com.vuducminh.nicefood.Remote.ICloudFunction;
+import com.vuducminh.nicefood.Remote.RetrofitICloudClient;
 
 
 import java.util.Arrays;
 import java.util.List;
 
 import dmax.dialog.SpotsDialog;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.functions.Consumer;
+import io.reactivex.schedulers.Schedulers;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -84,13 +97,33 @@ public class MainActivity extends AppCompatActivity {
         listener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                final FirebaseUser user = firebaseAuth.getCurrentUser();
-                if (user != null) {
 
-                    checkUserFromFireBase(user);
-                } else {
-                    phoneLogin();
-                }
+                Dexter.withActivity(MainActivity.this)
+                        .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                        .withListener(new PermissionListener() {
+                            @Override
+                            public void onPermissionGranted(PermissionGrantedResponse response) {
+                                FirebaseUser user = firebaseAuth.getCurrentUser();
+                                if (user != null) {
+
+                                    checkUserFromFireBase(user);
+                                } else {
+                                    phoneLogin();
+                                }
+                            }
+
+                            @Override
+                            public void onPermissionDenied(PermissionDeniedResponse response) {
+                                Toast.makeText(MainActivity.this,"You must enable this permisson to use app",Toast.LENGTH_SHORT).show();
+                            }
+
+                            @Override
+                            public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
+
+                            }
+                        })
+                        .check();
+
             }
         };
     }
@@ -106,10 +139,28 @@ public class MainActivity extends AppCompatActivity {
 
                             UserModel userModel = dataSnapshot.getValue(UserModel.class);
                             goToHomeActivity(userModel);
+
+//                            compositeDisposable.add(iCloudFunction.getToken()
+//                            .subscribeOn(Schedulers.io())
+//                            .observeOn(AndroidSchedulers.mainThread())
+//                            .subscribe(new Consumer<BraintreeToken>() {
+//                                @Override
+//                                public void accept(BraintreeToken braintreeToken) throws Exception {
+//                                    dialog.dismiss();
+//                                    UserModel userModel = dataSnapshot.getValue(UserModel.class);
+//                                    goToHomeActivity(userModel,braintreeToken.getToken());
+//                                }
+//                            }, new Consumer<Throwable>() {
+//                                @Override
+//                                public void accept(Throwable throwable) throws Exception {
+//                                    dialog.dismiss();
+//                                    Toast.makeText(MainActivity.this,""+throwable.getMessage(),Toast.LENGTH_SHORT).show();
+//                                }
+//                            }));
                         } else {
                             showRegisterDialog(user);
+//                            dialog.dismiss();
                         }
-
                         dialog.dismiss();
                     }
 
@@ -165,6 +216,23 @@ public class MainActivity extends AppCompatActivity {
                             @Override
                             public void onComplete(@NonNull Task<Void> task) {
                                 if(task.isSuccessful()) {
+//                                    compositeDisposable.add(iCloudFunction.getToken()
+//                                            .subscribeOn(Schedulers.io())
+//                                            .observeOn(AndroidSchedulers.mainThread())
+//                                            .subscribe(new Consumer<BraintreeToken>() {
+//                                                @Override
+//                                                public void accept(BraintreeToken braintreeToken) throws Exception {
+//                                                    dialogInterface.dismiss();
+//                                                    Toast.makeText(MainActivity.this,"Congratulation ! Register success",Toast.LENGTH_SHORT).show();
+//                                                    goToHomeActivity(userModel,braintreeToken.getToken());
+//                                                }
+//                                            }, new Consumer<Throwable>() {
+//                                                @Override
+//                                                public void accept(Throwable throwable) throws Exception {
+//                                                    dialog.dismiss();
+//                                                    Toast.makeText(MainActivity.this,""+throwable.getMessage(),Toast.LENGTH_SHORT).show();
+//                                                }
+//                                            }));
 
                                     dialogInterface.dismiss();
                                     Toast.makeText(MainActivity.this,"Congratulation ! Register success",Toast.LENGTH_SHORT).show();
@@ -185,8 +253,19 @@ public class MainActivity extends AppCompatActivity {
     private void goToHomeActivity(UserModel userModel) {
         Common.currentUser = userModel;
         startActivity(new Intent(MainActivity.this,HomeActivity.class));
+
         finish();
+
     }
+
+//    private void goToHomeActivity(UserModel userModel,String token) {
+//        Common.currentUser = userModel;
+//        Common.currentToken = token;
+//        startActivity(new Intent(MainActivity.this,HomeActivity.class));
+//
+//        finish();
+//
+//    }
 
     private void phoneLogin() {
 
