@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.Looper;
 import android.os.Parcelable;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -45,8 +46,13 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.vuducminh.nicefood.Adapter.MyCartAdapter;
+import com.vuducminh.nicefood.Callback.ILoadTimeFromFirebaseListener;
 import com.vuducminh.nicefood.Common.Common;
 import com.vuducminh.nicefood.Common.CommonAgr;
 import com.vuducminh.nicefood.Common.MySwiperHelper;
@@ -68,6 +74,8 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -84,7 +92,7 @@ import io.reactivex.functions.Consumer;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 
-public class CartFragment extends Fragment {
+public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListener {
 
     private static final int REQUEST_BAINTREE_CODE = 1999;
     private CompositeDisposable compositeDisposable = new CompositeDisposable();
@@ -102,6 +110,7 @@ public class CartFragment extends Fragment {
     String address,comment;
 
 //    ICloudFunction iCloudFunction;
+    ILoadTimeFromFirebaseListener iLoadTimeListener;
 
     @BindView(R.id.recycler_cart)
     RecyclerView recycler_cart;
@@ -241,6 +250,8 @@ public class CartFragment extends Fragment {
         View root = inflater.inflate(R.layout.fragment_cart, container, false);
 
 //        iCloudFunction = RetrofitICloudClient.getInstance().create(ICloudFunction.class);
+
+        iLoadTimeListener = this;
 
         unbinder = ButterKnife.bind(this, root);
         cartViewModel.initCartDataSource(getContext());
@@ -556,7 +567,7 @@ public class CartFragment extends Fragment {
                                         order.setTransactionId("Cash On Delivery");
 
                                         // Submit this order object to Firebase
-                                        writeOrderToFireBase(order);
+                                        syncLocalTimeWithGlobaltime(order);
                                     }
 
                                     @Override
@@ -573,6 +584,27 @@ public class CartFragment extends Fragment {
                     }
                 })
         );
+    }
+
+    private void syncLocalTimeWithGlobaltime(Order order) {
+        final DatabaseReference offsetRef = FirebaseDatabase.getInstance().getReference(".info/serverTimeOffset");
+        offsetRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                long offset = dataSnapshot.getValue(Long.class);
+                long estimatedServerTimeMs = System.currentTimeMillis()+offset;
+                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyy HH:mm");
+                Date resultDate = new Date(estimatedServerTimeMs);
+                Log.d("TEST_DATE",""+sdf.format(resultDate));
+
+                iLoadTimeListener.onLoadTimeSuccess(order,estimatedServerTimeMs);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                iLoadTimeListener.onLoadtimeFailed(databaseError.getMessage());
+            }
+        });
     }
 
     private void writeOrderToFireBase(Order order) {
@@ -610,6 +642,17 @@ public class CartFragment extends Fragment {
                         });
             }
         });
+    }
+
+    @Override
+    public void onLoadTimeSuccess(Order order, long estimateTimeInMs) {
+        order.setCreateDate(estimateTimeInMs);
+        writeOrderToFireBase(order);
+    }
+
+    @Override
+    public void onLoadtimeFailed(String message) {
+        Toast.makeText(getContext(),""+message,Toast.LENGTH_SHORT).show();
     }
 
 //    @Override
