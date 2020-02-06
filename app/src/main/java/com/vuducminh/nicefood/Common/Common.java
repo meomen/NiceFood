@@ -23,7 +23,7 @@ public class Common {
     public static UserModel currentUser;
     public static CategoryModel categorySelected;
     public static FoodModel selectedFood;
-    public static String currentToken ="";
+    public static String currentToken = "";
 
     public static String formatPrice(double price) {
         if (price != 0) {
@@ -43,20 +43,20 @@ public class Common {
         }
         // Không có size
         else if (userSelectedSize == null) {
-            for(AddonModel addonModel : userSelectedAddon) {
+            for (AddonModel addonModel : userSelectedAddon) {
                 result += addonModel.getPrice();
             }
             return result;
         }
         //Không có addon
-        else if(userSelectedAddon == null) {
-            return userSelectedSize.getPrice()*1.0;
+        else if (userSelectedAddon == null) {
+            return userSelectedSize.getPrice() * 1.0;
         }
 
         // Có đủ cả 2
         else {
-            result = userSelectedSize.getPrice()*1.0;
-            for(AddonModel addonModel : userSelectedAddon) {
+            result = userSelectedSize.getPrice() * 1.0;
+            for (AddonModel addonModel : userSelectedAddon) {
                 result += addonModel.getPrice();
             }
             return result;
@@ -68,9 +68,9 @@ public class Common {
         builder.append(welcome);
         SpannableString spannableString = new SpannableString(name);
         StyleSpan boldSpan = new StyleSpan(Typeface.BOLD);
-        spannableString.setSpan(boldSpan,0,name.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        spannableString.setSpan(boldSpan, 0, name.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         builder.append(spannableString);
-        tv_user.setText(builder,TextView.BufferType.SPANNABLE);
+        tv_user.setText(builder, TextView.BufferType.SPANNABLE);
     }
 
     public static String creteOrderNumber() {
@@ -79,5 +79,53 @@ public class Common {
                 .append(Math.abs(new Random().nextInt()))  // Add random number to block same order at same time
                 .toString();
 
+    }
+
+    public static String getDateOfWeek(int i) {
+        switch (i) {
+            case 1: {
+                return "Monday";
+            }
+            case 2: {
+                return "Tuesday";
+            }
+            case 3: {
+                return "Wednesday";
+            }
+            case 4: {
+                return "Thursday";
+            }
+            case 5: {
+                return "Friday";
+            }
+            case 6: {
+                return "Saturday";
+            }
+            case 7: {
+                return "Sunday";
+            }
+            default: {
+                return "Unknown";
+            }
+        }
+    }
+
+    public static String convertStatusToText(int orderStatus) {
+        switch (orderStatus) {
+            case 0: {
+                return "Placed";
+            }
+            case 1: {
+                return "Shipping";
+            }
+            case 2: {
+                return "Shipped";
+            }
+            case -1: {
+                return "Cancelled";
+            }
+            default:
+                return "Unknown";
+        }
     }
 }

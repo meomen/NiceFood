@@ -19,8 +19,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.vuducminh.nicefood.Adapter.MyFoodListAdapter;
 import com.vuducminh.nicefood.Common.Common;
+import com.vuducminh.nicefood.EventBus.MenuItemBack;
 import com.vuducminh.nicefood.Model.FoodModel;
 import com.vuducminh.nicefood.R;
+
+import org.greenrobot.eventbus.EventBus;
 
 import java.util.List;
 
@@ -71,4 +74,11 @@ public class FoodListFragment extends Fragment {
         layoutAnimationController = AnimationUtils.loadLayoutAnimation(getContext(),R.anim.layout_item_from_left);
 
     }
+
+    @Override
+    public void onDestroy() {
+        EventBus.getDefault().postSticky(new MenuItemBack());
+        super.onDestroy();
+    }
+
 }

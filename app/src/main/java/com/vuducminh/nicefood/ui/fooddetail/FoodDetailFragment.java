@@ -49,6 +49,7 @@ import com.vuducminh.nicefood.Database.CartDatabase;
 import com.vuducminh.nicefood.Database.CartItem;
 import com.vuducminh.nicefood.Database.LocalCartDataSource;
 import com.vuducminh.nicefood.EventBus.CountCartEvent;
+import com.vuducminh.nicefood.EventBus.MenuItemBack;
 import com.vuducminh.nicefood.Model.AddonModel;
 import com.vuducminh.nicefood.Model.CommentModel;
 import com.vuducminh.nicefood.Model.FoodModel;
@@ -564,4 +565,11 @@ public class FoodDetailFragment extends Fragment implements TextWatcher {
         compositeDisposable.clear();
         super.onStop();
     }
+
+    @Override
+    public void onDestroy() {
+        EventBus.getDefault().postSticky(new MenuItemBack());
+        super.onDestroy();
+    }
+
 }

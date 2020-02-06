@@ -62,6 +62,7 @@ import com.vuducminh.nicefood.Database.CartItem;
 import com.vuducminh.nicefood.Database.LocalCartDataSource;
 import com.vuducminh.nicefood.EventBus.CountCartEvent;
 import com.vuducminh.nicefood.EventBus.HideFABCart;
+import com.vuducminh.nicefood.EventBus.MenuItemBack;
 import com.vuducminh.nicefood.EventBus.UpdateItemInCart;
 import com.vuducminh.nicefood.Model.BraintreeTransaction;
 import com.vuducminh.nicefood.Model.Order;
@@ -411,6 +412,12 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
     }
 
     @Override
+    public void onDestroy() {
+        EventBus.getDefault().postSticky(new MenuItemBack());
+        super.onDestroy();
+    }
+
+    @Override
     public void onPrepareOptionsMenu(@NonNull Menu menu) {
         menu.findItem(R.id.action_settings).setVisible(false);   // Ẩn home menu
         super.onPrepareOptionsMenu(menu);
@@ -647,6 +654,7 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
     @Override
     public void onLoadTimeSuccess(Order order, long estimateTimeInMs) {
         order.setCreateDate(estimateTimeInMs);
+        order.setOrderStatus(0);
         writeOrderToFireBase(order);
     }
 
@@ -654,6 +662,7 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
     public void onLoadtimeFailed(String message) {
         Toast.makeText(getContext(),""+message,Toast.LENGTH_SHORT).show();
     }
+
 
 //    @Override
 //    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
