@@ -6,7 +6,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -18,12 +17,8 @@ import android.text.style.StyleSpan;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.FirebaseDatabase;
 import com.vuducminh.nicefood.Model.AddonModel;
 import com.vuducminh.nicefood.Model.CategoryModel;
@@ -32,7 +27,6 @@ import com.vuducminh.nicefood.Model.SizeModel;
 import com.vuducminh.nicefood.Model.TokenModel;
 import com.vuducminh.nicefood.Model.UserModel;
 import com.vuducminh.nicefood.R;
-import com.vuducminh.nicefood.services.MyFCMServices;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;

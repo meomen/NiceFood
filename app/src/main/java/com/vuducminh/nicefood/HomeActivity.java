@@ -167,7 +167,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 break;
             }
             case R.id.nav_sign_out: {
-                signoOut();
+                signOut();
                 break;
             }
 
@@ -176,7 +176,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         return true;
     }
 
-    private void signoOut() {
+    private void signOut() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Signout")
                 .setMessage("Do you really want to sign out?")

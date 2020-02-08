@@ -1,4 +1,4 @@
-package com.vuducminh.nicefood.services;
+package com.vuducminh.nicefood.Services;
 
 import androidx.annotation.NonNull;
 
