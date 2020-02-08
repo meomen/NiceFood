@@ -3,8 +3,7 @@ package com.vuducminh.nicefood.ui.comments;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.vuducminh.nicefood.Model.CommentModel;
-import com.vuducminh.nicefood.Model.FoodModel;
+import com.vuducminh.nicefood.model.CommentModel;
 
 import java.util.List;
 

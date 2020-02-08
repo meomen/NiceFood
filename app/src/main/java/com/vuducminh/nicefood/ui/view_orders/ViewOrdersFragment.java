@@ -5,13 +5,10 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -21,15 +18,12 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.vuducminh.nicefood.Adapter.MyOrderAdapter;
-import com.vuducminh.nicefood.Callback.ILoadOrderCallbackListener;
-import com.vuducminh.nicefood.Common.Common;
-import com.vuducminh.nicefood.Common.CommonAgr;
-import com.vuducminh.nicefood.EventBus.MenuItemBack;
-import com.vuducminh.nicefood.Model.Order;
+import com.vuducminh.nicefood.adapter.MyOrderAdapter;
+import com.vuducminh.nicefood.callback.ILoadOrderCallbackListener;
+import com.vuducminh.nicefood.common.Common;
+import com.vuducminh.nicefood.common.CommonAgr;
+import com.vuducminh.nicefood.model.Order;
 import com.vuducminh.nicefood.R;
-
-import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
 import java.util.List;

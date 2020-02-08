@@ -16,10 +16,8 @@ import android.view.animation.LayoutAnimationController;
 import android.widget.EditText;
 import android.widget.ImageView;
 
-import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
@@ -28,11 +26,11 @@ import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.vuducminh.nicefood.Adapter.MyCategoriesAdapter;
-import com.vuducminh.nicefood.Common.CommonAgr;
-import com.vuducminh.nicefood.Common.SpacesIiemDecoration;
-import com.vuducminh.nicefood.EventBus.MenuItemBack;
-import com.vuducminh.nicefood.Model.CategoryModel;
+import com.vuducminh.nicefood.adapter.MyCategoriesAdapter;
+import com.vuducminh.nicefood.common.CommonAgr;
+import com.vuducminh.nicefood.common.SpacesIiemDecoration;
+import com.vuducminh.nicefood.eventbus.MenuItemBack;
+import com.vuducminh.nicefood.model.CategoryModel;
 import com.vuducminh.nicefood.R;
 
 import org.greenrobot.eventbus.EventBus;

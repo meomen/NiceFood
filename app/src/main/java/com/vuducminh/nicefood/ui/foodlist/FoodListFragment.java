@@ -13,23 +13,19 @@ import android.view.animation.AnimationUtils;
 import android.view.animation.LayoutAnimationController;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.TextView;
 
-import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.vuducminh.nicefood.Adapter.MyFoodListAdapter;
-import com.vuducminh.nicefood.Common.Common;
-import com.vuducminh.nicefood.EventBus.MenuItemBack;
-import com.vuducminh.nicefood.Model.CategoryModel;
-import com.vuducminh.nicefood.Model.FoodModel;
+import com.vuducminh.nicefood.adapter.MyFoodListAdapter;
+import com.vuducminh.nicefood.common.Common;
+import com.vuducminh.nicefood.eventbus.MenuItemBack;
+import com.vuducminh.nicefood.model.FoodModel;
 import com.vuducminh.nicefood.R;
 
 import org.greenrobot.eventbus.EventBus;

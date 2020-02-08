@@ -1,10 +1,9 @@
 package com.vuducminh.nicefood.ui.view_orders;
 
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.vuducminh.nicefood.Model.Order;
+import com.vuducminh.nicefood.model.Order;
 
 import java.util.List;
 

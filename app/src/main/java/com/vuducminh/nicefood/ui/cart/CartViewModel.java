@@ -2,15 +2,14 @@ package com.vuducminh.nicefood.ui.cart;
 
 import android.content.Context;
 
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.vuducminh.nicefood.Common.Common;
-import com.vuducminh.nicefood.Database.CartDataSource;
-import com.vuducminh.nicefood.Database.CartDatabase;
-import com.vuducminh.nicefood.Database.CartItem;
-import com.vuducminh.nicefood.Database.LocalCartDataSource;
+import com.vuducminh.nicefood.common.Common;
+import com.vuducminh.nicefood.database.CartDataSource;
+import com.vuducminh.nicefood.database.CartDatabase;
+import com.vuducminh.nicefood.database.CartItem;
+import com.vuducminh.nicefood.database.LocalCartDataSource;
 
 import java.util.List;
 

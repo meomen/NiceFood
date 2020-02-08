@@ -1,7 +1,6 @@
 package com.vuducminh.nicefood.ui.home;
 
 import androidx.annotation.NonNull;
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
@@ -10,12 +9,11 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.vuducminh.nicefood.Callback.IBestDealCallbackListener;
-import com.vuducminh.nicefood.Callback.IPopularCallbackListener;
-import com.vuducminh.nicefood.Common.Common;
-import com.vuducminh.nicefood.Common.CommonAgr;
-import com.vuducminh.nicefood.Model.BestDealModel;
-import com.vuducminh.nicefood.Model.PopluarCategoryModel;
+import com.vuducminh.nicefood.callback.IBestDealCallbackListener;
+import com.vuducminh.nicefood.callback.IPopularCallbackListener;
+import com.vuducminh.nicefood.common.CommonAgr;
+import com.vuducminh.nicefood.model.BestDealModel;
+import com.vuducminh.nicefood.model.PopluarCategoryModel;
 
 import java.util.ArrayList;
 import java.util.List;

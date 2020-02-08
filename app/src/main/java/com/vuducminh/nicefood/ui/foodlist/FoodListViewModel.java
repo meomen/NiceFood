@@ -1,11 +1,10 @@
 package com.vuducminh.nicefood.ui.foodlist;
 
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.vuducminh.nicefood.Common.Common;
-import com.vuducminh.nicefood.Model.FoodModel;
+import com.vuducminh.nicefood.common.Common;
+import com.vuducminh.nicefood.model.FoodModel;
 
 import java.util.List;
 

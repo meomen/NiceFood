@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -21,11 +20,11 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.vuducminh.nicefood.Adapter.MyCommentAdapter;
-import com.vuducminh.nicefood.Callback.ICommentCallbackListener;
-import com.vuducminh.nicefood.Common.Common;
-import com.vuducminh.nicefood.Common.CommonAgr;
-import com.vuducminh.nicefood.Model.CommentModel;
+import com.vuducminh.nicefood.adapter.MyCommentAdapter;
+import com.vuducminh.nicefood.callback.ICommentCallbackListener;
+import com.vuducminh.nicefood.common.Common;
+import com.vuducminh.nicefood.common.CommonAgr;
+import com.vuducminh.nicefood.model.CommentModel;
 import com.vuducminh.nicefood.R;
 
 import java.util.ArrayList;
