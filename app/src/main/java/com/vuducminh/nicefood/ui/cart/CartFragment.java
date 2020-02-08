@@ -65,9 +65,13 @@ import com.vuducminh.nicefood.EventBus.HideFABCart;
 import com.vuducminh.nicefood.EventBus.MenuItemBack;
 import com.vuducminh.nicefood.EventBus.UpdateItemInCart;
 import com.vuducminh.nicefood.Model.BraintreeTransaction;
+import com.vuducminh.nicefood.Model.FCMService.FCMResponse;
+import com.vuducminh.nicefood.Model.FCMService.FCMSendData;
 import com.vuducminh.nicefood.Model.Order;
 import com.vuducminh.nicefood.R;
 import com.vuducminh.nicefood.Remote.ICloudFunction;
+import com.vuducminh.nicefood.Remote.IFCMService;
+import com.vuducminh.nicefood.Remote.RetrofitFCMClient;
 import com.vuducminh.nicefood.Remote.RetrofitICloudClient;
 
 import org.greenrobot.eventbus.EventBus;
@@ -77,8 +81,10 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -108,10 +114,11 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
     FusedLocationProviderClient fusedLocationProviderClient;
     Location currentLocation;
 
-    String address,comment;
+    String address, comment;
 
-//    ICloudFunction iCloudFunction;
+    //    ICloudFunction iCloudFunction;
     ILoadTimeFromFirebaseListener iLoadTimeListener;
+    IFCMService ifcmService;
 
     @BindView(R.id.recycler_cart)
     RecyclerView recycler_cart;
@@ -217,8 +224,8 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
         }).setPositiveButton("YES", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                if(rdi_cod.isChecked()) {
-                    paymentCOD(edt_address.getText().toString(),edt_comment.getText().toString());
+                if (rdi_cod.isChecked()) {
+                    paymentCOD(edt_address.getText().toString(), edt_comment.getText().toString());
                 }
 //                else if(rdi_braintree.isChecked()) {
 //                    address = edt_address.getText().toString();
@@ -237,8 +244,6 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
     }
 
 
-
-
     private MyCartAdapter adapter;
 
     private Unbinder unbinder;
@@ -251,7 +256,7 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
         View root = inflater.inflate(R.layout.fragment_cart, container, false);
 
 //        iCloudFunction = RetrofitICloudClient.getInstance().create(ICloudFunction.class);
-
+        ifcmService = RetrofitFCMClient.getInstance().create(IFCMService.class);
         iLoadTimeListener = this;
 
         unbinder = ButterKnife.bind(this, root);
@@ -502,8 +507,9 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
 
                     @Override
                     public void onError(Throwable e) {
-                        Toast.makeText(getContext(), "[SUM CART]" + e.getMessage(), Toast.LENGTH_SHORT).show();
-
+                        if(!e.getMessage().contains("Query returned empty result set")) {
+                            Toast.makeText(getContext(), "" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
                     }
                 });
     }
@@ -513,18 +519,16 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
         Geocoder geocoder = new Geocoder(getContext(), Locale.getDefault());
         String result = "";
         try {
-            List<Address> addressList = geocoder.getFromLocation(latitude,longitude,1);
-            if(addressList != null && addressList.size() > 0) {
+            List<Address> addressList = geocoder.getFromLocation(latitude, longitude, 1);
+            if (addressList != null && addressList.size() > 0) {
                 Address address = addressList.get(0);
                 StringBuilder sb = new StringBuilder(address.getAddressLine(0));
                 result = sb.toString();
-            }
-            else {
+            } else {
                 result = "Address not found";
             }
 
-        }
-        catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
             result = e.getMessage();
         }
@@ -535,61 +539,52 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
         compositeDisposable.add(cartDataSource.getAllCart(Common.currentUser.getUid())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<List<CartItem>>() {
-                    @Override
-                    public void accept(List<CartItem> cartItems) throws Exception {
-                        cartDataSource.sumPriceInCart(Common.currentUser.getUid())
-                                .subscribeOn(Schedulers.io())
-                                .observeOn(AndroidSchedulers.mainThread())
-                                .subscribe(new SingleObserver<Double>() {
-                                    @Override
-                                    public void onSubscribe(Disposable d) {
+                .subscribe(cartItems -> cartDataSource.sumPriceInCart(Common.currentUser.getUid())
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new SingleObserver<Double>() {
+                            @Override
+                            public void onSubscribe(Disposable d) {
 
-                                    }
+                            }
 
-                                    @Override
-                                    public void onSuccess(Double totalPrice) {
-                                        double finalPrice = totalPrice; // We will modify formuls discount late
-                                        Order order = new Order();
-                                        order.setUserId(Common.currentUser.getUid());
-                                        order.setUserName(Common.currentUser.getName());
-                                        order.setUserPhone(Common.currentUser.getPhone());
-                                        order.setShippingAddress(address);
-                                        order.setCommet(comment);
+                            @Override
+                            public void onSuccess(Double totalPrice) {
+                                double finalPrice = totalPrice; // We will modify formuls discount late
+                                Order order = new Order();
+                                order.setUserId(Common.currentUser.getUid());
+                                order.setUserName(Common.currentUser.getName());
+                                order.setUserPhone(Common.currentUser.getPhone());
+                                order.setShippingAddress(address);
+                                order.setCommet(comment);
 
-                                        if(currentLocation != null) {
-                                            order.setLat(currentLocation.getLatitude());
-                                            order.setLng(currentLocation.getLongitude());
-                                        }
-                                        else {
-                                            order.setLat(-0.1f);
-                                            order.setLng(-0.1f);
-                                        }
+                                if (currentLocation != null) {
+                                    order.setLat(currentLocation.getLatitude());
+                                    order.setLng(currentLocation.getLongitude());
+                                } else {
+                                    order.setLat(-0.1f);
+                                    order.setLng(-0.1f);
+                                }
 
-                                        order.setCartItemList(cartItems);
-                                        order.setTotalPayment(totalPrice);
-                                        order.setDiscount(0);
-                                        order.setFinalPayment(finalPrice);
-                                        order.setCod(true);
-                                        order.setTransactionId("Cash On Delivery");
+                                order.setCartItemList(cartItems);
+                                order.setTotalPayment(totalPrice);
+                                order.setDiscount(0);
+                                order.setFinalPayment(finalPrice);
+                                order.setCod(true);
+                                order.setTransactionId("Cash On Delivery");
 
-                                        // Submit this order object to Firebase
-                                        syncLocalTimeWithGlobaltime(order);
-                                    }
+                                // Submit this order object to Firebase
+                                syncLocalTimeWithGlobaltime(order);
+                            }
 
-                                    @Override
-                                    public void onError(Throwable e) {
-                                        Toast.makeText(getContext(),""+ e.getMessage(),Toast.LENGTH_SHORT).show();
+                            @Override
+                            public void onError(Throwable e) {
+                                if(!e.getMessage().contains("Query returned empty result set")) {
+                                    Toast.makeText(getContext(), "" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                }
 
-                                    }
-                                });
-                    }
-                }, new Consumer<Throwable>() {
-                    @Override
-                    public void accept(Throwable throwable) throws Exception {
-                        Toast.makeText(getContext(),""+ throwable.getMessage(),Toast.LENGTH_SHORT).show();
-                    }
-                })
+                            }
+                        }), throwable -> Toast.makeText(getContext(), "" + throwable.getMessage(), Toast.LENGTH_SHORT).show())
         );
     }
 
@@ -599,12 +594,12 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 long offset = dataSnapshot.getValue(Long.class);
-                long estimatedServerTimeMs = System.currentTimeMillis()+offset;
+                long estimatedServerTimeMs = System.currentTimeMillis() + offset;
                 SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyy HH:mm");
                 Date resultDate = new Date(estimatedServerTimeMs);
-                Log.d("TEST_DATE",""+sdf.format(resultDate));
+                Log.d("TEST_DATE", "" + sdf.format(resultDate));
 
-                iLoadTimeListener.onLoadTimeSuccess(order,estimatedServerTimeMs);
+                iLoadTimeListener.onLoadTimeSuccess(order, estimatedServerTimeMs);
             }
 
             @Override
@@ -622,7 +617,7 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
                 .addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        Toast.makeText(getContext(),""+ e.getMessage(),Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "" + e.getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 }).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
@@ -638,13 +633,29 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
 
                             @Override
                             public void onSuccess(Integer integer) {
-                                Toast.makeText(getContext(),"Order placed Successfully",Toast.LENGTH_SHORT).show();
-                                EventBus.getDefault().postSticky(new CountCartEvent(true));
+                                Map<String, String> notiData = new HashMap<>();
+                                notiData.put(CommonAgr.NOTI_TITLE, "New Order");
+                                notiData.put(CommonAgr.NOTI_CONTENT, "You have new order from " + Common.currentUser.getPhone());
+
+                                FCMSendData sendData = new FCMSendData(Common.createTopicOrder(), notiData);
+
+                                compositeDisposable.add(ifcmService.sendNotification(sendData)
+                                        .subscribeOn(Schedulers.io())
+                                        .observeOn(AndroidSchedulers.mainThread())
+                                        .subscribe(fcmResponse -> {
+                                            //Clean
+                                            Toast.makeText(getContext(), "Order placed Successfully", Toast.LENGTH_SHORT).show();
+                                            EventBus.getDefault().postSticky(new CountCartEvent(true));
+                                        }, throwable -> {
+                                            Toast.makeText(getContext(), "Order was sent but failure to send notification", Toast.LENGTH_SHORT).show();
+                                            EventBus.getDefault().postSticky(new CountCartEvent(true));
+                                        }));
+
                             }
 
                             @Override
                             public void onError(Throwable e) {
-                                Toast.makeText(getContext(),""+ e.getMessage(),Toast.LENGTH_SHORT).show();
+                                Toast.makeText(getContext(), "" + e.getMessage(), Toast.LENGTH_SHORT).show();
                             }
                         });
             }
@@ -660,7 +671,7 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
 
     @Override
     public void onLoadtimeFailed(String message) {
-        Toast.makeText(getContext(),""+message,Toast.LENGTH_SHORT).show();
+        Toast.makeText(getContext(), "" + message, Toast.LENGTH_SHORT).show();
     }
 
 

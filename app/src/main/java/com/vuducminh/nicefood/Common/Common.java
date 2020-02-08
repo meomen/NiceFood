@@ -187,4 +187,8 @@ public class Common {
                     Toast.makeText(context, "" + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
+
+    public static String createTopicOrder() {
+        return new StringBuilder("/topics/new_order").toString();
+    }
 }
