@@ -4,7 +4,7 @@ import com.vuducminh.nicefood.database.CartItem;
 
 import java.util.List;
 
-public class Order {
+public class OrderModel {
 
     private String userId,userName,userPhone,shippingAddress,commet,transactionId;
     private double lat,lng,totalPayment,finalPayment;
@@ -15,10 +15,10 @@ public class Order {
     private String orderNumber;
     private int orderStatus;
 
-    public Order() {
+    public OrderModel() {
     }
 
-    public Order(String userId, String userName, String userPhone, String shippingAddress, String commet, String transactionId, double lat, double lng, double totalPayment, double finalPayment, boolean cod, int discount, List<CartItem> cartItemList) {
+    public OrderModel(String userId, String userName, String userPhone, String shippingAddress, String commet, String transactionId, double lat, double lng, double totalPayment, double finalPayment, boolean cod, int discount, List<CartItem> cartItemList) {
         this.userId = userId;
         this.userName = userName;
         this.userPhone = userPhone;

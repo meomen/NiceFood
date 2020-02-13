@@ -1,8 +1,8 @@
 package com.vuducminh.nicefood.callback;
 
-import com.vuducminh.nicefood.model.Order;
+import com.vuducminh.nicefood.model.OrderModel;
 
 public interface ILoadTimeFromFirebaseListener {
-    void onLoadTimeSuccess(Order order, long estimateTimeInMs);
+    void onLoadTimeSuccess(OrderModel orderModel, long estimateTimeInMs);
     void onLoadtimeFailed(String message);
 }

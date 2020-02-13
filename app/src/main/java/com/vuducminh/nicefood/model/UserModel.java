@@ -2,6 +2,7 @@ package com.vuducminh.nicefood.model;
 
 public class UserModel {
     private String uid,name,address,phone;
+    private double lat,lng;
 
     public UserModel() {
     }
@@ -43,5 +44,21 @@ public class UserModel {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public double getLat() {
+        return lat;
+    }
+
+    public void setLat(double lat) {
+        this.lat = lat;
+    }
+
+    public double getLng() {
+        return lng;
+    }
+
+    public void setLng(double lng) {
+        this.lng = lng;
     }
 }

@@ -31,7 +31,10 @@
     <string name="action_clear_cart">Clean Cart</string>
     <string name="action_search">Search</string>
     <string name="sign_out">Sign Out</string>
+    <string name="update_info">Update Info</string>
 
+
+    <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">AIzaSyB1PW-fiBSduZXFAfVMpqkErO9U3rgbRLs</string>
 
 
 </resources>

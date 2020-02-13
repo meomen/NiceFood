@@ -12,7 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.vuducminh.nicefood.common.Common;
-import com.vuducminh.nicefood.model.Order;
+import com.vuducminh.nicefood.model.OrderModel;
 import com.vuducminh.nicefood.R;
 
 import java.text.SimpleDateFormat;
@@ -27,13 +27,13 @@ import butterknife.Unbinder;
 public class MyOrderAdapter extends RecyclerView.Adapter<MyOrderAdapter.MyViewHolder>{
 
     private Context context;
-    private List<Order> orderList;
+    private List<OrderModel> orderModelList;
     private Calendar calendar;
     private SimpleDateFormat simpleDateFormat;
 
-    public MyOrderAdapter(Context context, List<Order> orderList) {
+    public MyOrderAdapter(Context context, List<OrderModel> orderModelList) {
         this.context = context;
-        this.orderList = orderList;
+        this.orderModelList = orderModelList;
         calendar = Calendar.getInstance();
         simpleDateFormat = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
 
@@ -48,21 +48,29 @@ public class MyOrderAdapter extends RecyclerView.Adapter<MyOrderAdapter.MyViewHo
 
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
-        Order order = orderList.get(position);
-        Glide.with(context).load(order.getCartItemList().get(0).getFoodImage()).into(holder.img_order);
-        calendar.setTimeInMillis(order.getCreateDate());
-        Date date = new Date(order.getCreateDate());
+        OrderModel orderModel = orderModelList.get(position);
+        Glide.with(context).load(orderModel.getCartItemList().get(0).getFoodImage()).into(holder.img_order);
+        calendar.setTimeInMillis(orderModel.getCreateDate());
+        Date date = new Date(orderModel.getCreateDate());
         holder.tv_order_date.setText(new StringBuilder(Common.getDateOfWeek(calendar.get(Calendar.DAY_OF_WEEK)))
         .append("")
         .append(simpleDateFormat.format(date)));
-        holder.tv_order_number.setText(new StringBuilder("Order number: ").append(order.getOrderNumber()));
-        holder.tv_order_comment.setText(new StringBuilder("Comment: ").append(order.getCommet()));
-        holder.tv_order_status.setText(new StringBuilder("Status: ").append(Common.convertStatusToText(order.getOrderStatus())));
+        holder.tv_order_number.setText(new StringBuilder("OrderModel number: ").append(orderModel.getOrderNumber()));
+        holder.tv_order_comment.setText(new StringBuilder("Comment: ").append(orderModel.getCommet()));
+        holder.tv_order_status.setText(new StringBuilder("Status: ").append(Common.convertStatusToText(orderModel.getOrderStatus())));
     }
 
     @Override
     public int getItemCount() {
-        return orderList.size();
+        return orderModelList.size();
+    }
+
+    public OrderModel getItemAtPosition(int position) {
+        return orderModelList.get(position);
+    }
+
+    public void setItemAtPosition(int position, OrderModel item) {
+        orderModelList.set(position,item);
     }
 
     public class MyViewHolder extends RecyclerView.ViewHolder{

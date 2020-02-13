@@ -1,6 +1,8 @@
 package com.vuducminh.nicefood.ui.view_orders;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,6 +16,7 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
@@ -22,11 +25,14 @@ import com.vuducminh.nicefood.adapter.MyOrderAdapter;
 import com.vuducminh.nicefood.callback.ILoadOrderCallbackListener;
 import com.vuducminh.nicefood.common.Common;
 import com.vuducminh.nicefood.common.CommonAgr;
-import com.vuducminh.nicefood.model.Order;
+import com.vuducminh.nicefood.common.MySwiperHelper;
+import com.vuducminh.nicefood.model.OrderModel;
 import com.vuducminh.nicefood.R;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -63,7 +69,7 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
     }
 
     private void loadOrdersFromFirebase() {
-        List<Order> orderList = new ArrayList<>();
+        List<OrderModel> orderModelList = new ArrayList<>();
         FirebaseDatabase.getInstance().getReference(CommonAgr.ORDER_REF)
                 .orderByChild("userId")
                 .equalTo(Common.currentUser.getUid())
@@ -72,11 +78,11 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         for(DataSnapshot orderSnapShot:dataSnapshot.getChildren()) {
-                            Order order = orderSnapShot.getValue(Order.class);
-                            order.setOrderNumber(orderSnapShot.getKey());
-                            orderList.add(order);
+                            OrderModel orderModel = orderSnapShot.getValue(OrderModel.class);
+                            orderModel.setOrderNumber(orderSnapShot.getKey());
+                            orderModelList.add(orderModel);
                         }
-                        listener.onLoadOrderLoadSuccess(orderList);
+                        listener.onLoadOrderLoadSuccess(orderModelList);
                     }
 
                     @Override
@@ -94,13 +100,61 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
         recycler_orders.setLayoutManager(layoutManager);
         recycler_orders.addItemDecoration(new DividerItemDecoration(getContext(),layoutManager.getOrientation()));
+
+        MySwiperHelper mySwiperHelper = new MySwiperHelper(getContext(), recycler_orders, 250) {
+            @Override
+            public void instantiateMyButton(RecyclerView.ViewHolder viewHolder, List<MyButton> buf) {
+
+                buf.add(new MyButton(getContext(), "Cancel OrderModel", 30, 0, Color.parseColor("#FF3C30"),
+                        position -> {
+                            OrderModel orderModel = ((MyOrderAdapter)recycler_orders.getAdapter()).getItemAtPosition(position);
+
+                            if(orderModel.getOrderStatus() == 0) {
+                                androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(getContext());
+                                builder.setTitle("Cancel Order")
+                                        .setMessage("Do you really want to cancel this order?")
+                                        .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
+                                        .setPositiveButton("YES", (dialog, which) -> {
+                                            Map<String,Object> update_data = new HashMap<>();
+                                            update_data.put("orderStatus",-1);
+                                            FirebaseDatabase.getInstance()
+                                                    .getReference(CommonAgr.ORDER_REF)
+                                                    .child(orderModel.getOrderNumber())
+                                                    .updateChildren(update_data)
+                                                    .addOnFailureListener(new OnFailureListener() {
+                                                        @Override
+                                                        public void onFailure(@NonNull Exception e) {
+                                                            Toast.makeText(getContext(),""+e.getMessage(),Toast.LENGTH_SHORT).show();
+                                                        }
+                                                    })
+                                                    .addOnSuccessListener(aVoid -> {
+                                                        orderModel.setOrderStatus(-1);
+                                                        ((MyOrderAdapter)recycler_orders.getAdapter()).setItemAtPosition(position,orderModel);
+                                                        recycler_orders.getAdapter().notifyItemChanged(position);
+                                                        Toast.makeText(getContext(),"Cancel order successfully",Toast.LENGTH_SHORT).show();
+                                                    });
+                                        });
+
+                                androidx.appcompat.app.AlertDialog dialog = builder.create();
+                                dialog.show();
+
+                            }
+                            else {
+                                Toast.makeText(getContext(),new StringBuilder("You order was changed to ")
+                                .append(Common.convertStatusToText(orderModel.getOrderStatus()))
+                                .append(", so you can't cancel it!"),Toast.LENGTH_SHORT).show();
+                            }
+                        }));
+            }
+        };
+
     }
 
 
     @Override
-    public void onLoadOrderLoadSuccess(List<Order> orderModels) {
+    public void onLoadOrderLoadSuccess(List<OrderModel> orderModelModels) {
         dialog.dismiss();
-        viewOrdersViewModel.setMutableLiveDataOrderList(orderModels);
+        viewOrdersViewModel.setMutableLiveDataOrderList(orderModelModels);
     }
 
     @Override

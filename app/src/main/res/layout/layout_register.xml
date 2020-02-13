@@ -16,15 +16,25 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
     </com.google.android.material.textfield.TextInputLayout>
-    <com.google.android.material.textfield.TextInputLayout
+
+
+    <fragment
+        android:id="@+id/places_autocomplete_fragment"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <EditText
-            android:id="@+id/edt_address"
-            android:hint="Your Address"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-    </com.google.android.material.textfield.TextInputLayout>
+        android:layout_height="wrap_content"
+        android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"/>
+    <TextView
+        android:id="@+id/tv_address_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Your Address"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        android:fontFamily="@font/brandon_medium"
+        android:textSize="16sp"/>
+
+
+
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">

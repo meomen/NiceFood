@@ -5,13 +5,27 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import com.andremion.counterfab.CounterFab;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
+import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import android.text.TextUtils;
+import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -37,6 +51,7 @@ import com.vuducminh.nicefood.eventbus.MenuItemBack;
 import com.vuducminh.nicefood.eventbus.PopluarCategoryClick;
 import com.vuducminh.nicefood.model.CategoryModel;
 import com.vuducminh.nicefood.model.FoodModel;
+import com.vuducminh.nicefood.model.UserModel;
 
 import androidx.drawerlayout.widget.DrawerLayout;
 
@@ -44,12 +59,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.view.Menu;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -70,6 +91,14 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
     int menuClickId = -1;
 
+    private Place placeSelected;
+    private AutocompleteSupportFragment places_fragment;
+    private PlacesClient placesClient;
+    private List<Place.Field> placeFields = Arrays.asList(Place.Field.ID,
+            Place.Field.NAME,
+            Place.Field.ADDRESS,
+            Place.Field.LAT_LNG);
+
     @BindView(R.id.fab)
     CounterFab fab;
 
@@ -83,6 +112,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+        
+        initPlaceClient();
 
         dialog = new SpotsDialog.Builder().setContext(this).setCancelable(false).build();
 
@@ -119,6 +150,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         Common.setSpanString("Hey, ",Common.currentUser.getName(),tv_user);
 
         coutCartItem();
+    }
+
+    private void initPlaceClient() {
+        Places.initialize(this,getString(R.string.google_maps_key));
+        placesClient = Places.createClient(this);
     }
 
     @Override
@@ -168,10 +204,106 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 signOut();
                 break;
             }
+            case R.id.nav_update_info: {
+                showUpdateInfoDialog();
+                break;
+            }
 
         }
         menuClickId = item.getItemId();
         return true;
+    }
+
+    private void showUpdateInfoDialog() {
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("Update Info");
+        builder.setMessage("Please fill information");
+
+        View itemView = LayoutInflater.from(this).inflate(R.layout.layout_register, null);
+        EditText edt_name = (EditText) itemView.findViewById(R.id.edt_name);
+        TextView tv_address_detail = (TextView)itemView.findViewById(R.id.tv_address_detail);
+
+        EditText edt_phone = (EditText) itemView.findViewById(R.id.edt_phone);
+
+        places_fragment = (AutocompleteSupportFragment)getSupportFragmentManager()
+                .findFragmentById(R.id.places_autocomplete_fragment);
+
+        places_fragment.setPlaceFields(placeFields);
+        places_fragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(@NonNull Place place) {
+                placeSelected = place;
+                tv_address_detail.setText(place.getAddress());
+            }
+
+            @Override
+            public void onError(@NonNull Status status) {
+                Toast.makeText(HomeActivity.this,""+status.getStatusMessage(),Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
+        // Dổ dữ liệu và bắt sự kiện
+        edt_phone.setText(Common.currentUser.getPhone());
+        tv_address_detail.setText(Common.currentUser.getAddress());
+
+        builder.setView(itemView);
+        builder.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+
+        });
+        builder.setPositiveButton("UPDATE", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if(placeSelected != null) {
+                    if(TextUtils.isEmpty(edt_name.getText().toString())) {
+                        Toast.makeText(HomeActivity.this,"Plaeasr enter your name",Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    Map<String,Object> update_date = new HashMap<>();
+                    update_date.put("name",edt_name.getText().toString());
+                    update_date.put("address",tv_address_detail.getText().toString());
+                    update_date.put("lat",placeSelected.getLatLng().latitude);
+                    update_date.put("lng",placeSelected.getLatLng().longitude);
+
+                    FirebaseDatabase.getInstance()
+                            .getReference(CommonAgr.USER_REFERENCES)
+                            .child(Common.currentUser.getUid())
+                            .updateChildren(update_date)
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    dialog.dismiss();
+                                    Toast.makeText(HomeActivity.this,""+e.getMessage(),Toast.LENGTH_LONG).show();
+                                }
+                            })
+                            .addOnSuccessListener(aVoid -> {
+                                    dialog.dismiss();
+                                Toast.makeText(HomeActivity.this,"Update Info success",Toast.LENGTH_LONG).show();
+                                Common.currentUser.setName(update_date.get("name").toString());
+                                Common.currentUser.setAddress(update_date.get("address").toString());
+                                Common.currentUser.setLat(Double.valueOf(update_date.get("lat").toString()));
+                                Common.currentUser.setLng(Double.valueOf(update_date.get("lng").toString()));
+
+                            });
+                }
+            }
+        });
+
+
+        builder.setView(itemView);
+        androidx.appcompat.app.AlertDialog dialog = builder.create();
+        dialog.setOnDismissListener(dialog1 -> {
+            FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+            fragmentTransaction.remove(places_fragment);
+            fragmentTransaction.commit();
+        });
+        dialog.show();
+
     }
 
     private void signOut() {
@@ -405,6 +537,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     public void onError(Throwable e) {
                         if(!e.getMessage().contains("query returned empty")) {
                             Toast.makeText(HomeActivity.this,"[COUNT CART]"+e.getMessage(),Toast.LENGTH_SHORT).show();
+                            Log.e("Count_Error",e.getMessage());
                         }
                         else{
                             fab.setCount(0);
