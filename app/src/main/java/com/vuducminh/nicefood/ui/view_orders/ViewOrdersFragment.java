@@ -110,33 +110,64 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
                             OrderModel orderModel = ((MyOrderAdapter)recycler_orders.getAdapter()).getItemAtPosition(position);
 
                             if(orderModel.getOrderStatus() == 0) {
-                                androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(getContext());
-                                builder.setTitle("Cancel Order")
-                                        .setMessage("Do you really want to cancel this order?")
-                                        .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
-                                        .setPositiveButton("YES", (dialog, which) -> {
-                                            Map<String,Object> update_data = new HashMap<>();
-                                            update_data.put("orderStatus",-1);
-                                            FirebaseDatabase.getInstance()
-                                                    .getReference(CommonAgr.ORDER_REF)
-                                                    .child(orderModel.getOrderNumber())
-                                                    .updateChildren(update_data)
-                                                    .addOnFailureListener(new OnFailureListener() {
-                                                        @Override
-                                                        public void onFailure(@NonNull Exception e) {
-                                                            Toast.makeText(getContext(),""+e.getMessage(),Toast.LENGTH_SHORT).show();
-                                                        }
-                                                    })
-                                                    .addOnSuccessListener(aVoid -> {
-                                                        orderModel.setOrderStatus(-1);
-                                                        ((MyOrderAdapter)recycler_orders.getAdapter()).setItemAtPosition(position,orderModel);
-                                                        recycler_orders.getAdapter().notifyItemChanged(position);
-                                                        Toast.makeText(getContext(),"Cancel order successfully",Toast.LENGTH_SHORT).show();
-                                                    });
-                                        });
+                                if(orderModel.isCod()) {
+                                    androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(getContext());
+                                    builder.setTitle("Cancel Order")
+                                            .setMessage("Do you really want to cancel this order?")
+                                            .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
+                                            .setPositiveButton("YES", (dialog, which) -> {
+                                                Map<String,Object> update_data = new HashMap<>();
+                                                update_data.put("orderStatus",-1);
+                                                FirebaseDatabase.getInstance()
+                                                        .getReference(CommonAgr.ORDER_REF)
+                                                        .child(orderModel.getOrderNumber())
+                                                        .updateChildren(update_data)
+                                                        .addOnFailureListener(new OnFailureListener() {
+                                                            @Override
+                                                            public void onFailure(@NonNull Exception e) {
+                                                                Toast.makeText(getContext(),""+e.getMessage(),Toast.LENGTH_SHORT).show();
+                                                            }
+                                                        })
+                                                        .addOnSuccessListener(aVoid -> {
+                                                            orderModel.setOrderStatus(-1);
+                                                            ((MyOrderAdapter)recycler_orders.getAdapter()).setItemAtPosition(position,orderModel);
+                                                            recycler_orders.getAdapter().notifyItemChanged(position);
+                                                            Toast.makeText(getContext(),"Cancel order successfully",Toast.LENGTH_SHORT).show();
+                                                        });
+                                            });
 
-                                androidx.appcompat.app.AlertDialog dialog = builder.create();
-                                dialog.show();
+                                    androidx.appcompat.app.AlertDialog dialog = builder.create();
+                                    dialog.show();
+                                }
+                                else {
+                                    androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(getContext());
+                                    builder.setTitle("Cancel Order")
+                                            .setMessage("Do you really want to cancel this order?")
+                                            .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
+                                            .setPositiveButton("YES", (dialog, which) -> {
+                                                Map<String,Object> update_data = new HashMap<>();
+                                                update_data.put("orderStatus",-1);
+                                                FirebaseDatabase.getInstance()
+                                                        .getReference(CommonAgr.ORDER_REF)
+                                                        .child(orderModel.getOrderNumber())
+                                                        .updateChildren(update_data)
+                                                        .addOnFailureListener(new OnFailureListener() {
+                                                            @Override
+                                                            public void onFailure(@NonNull Exception e) {
+                                                                Toast.makeText(getContext(),""+e.getMessage(),Toast.LENGTH_SHORT).show();
+                                                            }
+                                                        })
+                                                        .addOnSuccessListener(aVoid -> {
+                                                            orderModel.setOrderStatus(-1);
+                                                            ((MyOrderAdapter)recycler_orders.getAdapter()).setItemAtPosition(position,orderModel);
+                                                            recycler_orders.getAdapter().notifyItemChanged(position);
+                                                            Toast.makeText(getContext(),"Cancel order successfully",Toast.LENGTH_SHORT).show();
+                                                        });
+                                            });
+
+                                    androidx.appcompat.app.AlertDialog dialog = builder.create();
+                                    dialog.show();
+                                }
 
                             }
                             else {

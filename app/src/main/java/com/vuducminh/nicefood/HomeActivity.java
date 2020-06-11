@@ -536,8 +536,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     @Override
                     public void onError(Throwable e) {
                         if(!e.getMessage().contains("query returned empty")) {
-                            Toast.makeText(HomeActivity.this,"[COUNT CART]"+e.getMessage(),Toast.LENGTH_SHORT).show();
+//                            Toast.makeText(HomeActivity.this,"[COUNT CART]"+e.getMessage(),Toast.LENGTH_SHORT).show();
                             Log.e("Count_Error",e.getMessage());
+                            fab.setCount(0);
                         }
                         else{
                             fab.setCount(0);
