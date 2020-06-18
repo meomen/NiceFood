@@ -19,10 +19,12 @@ import android.widget.Toast;
 
 import androidx.core.app.NotificationCompat;
 
+import com.google.android.gms.maps.model.LatLng;
 import com.google.firebase.database.FirebaseDatabase;
 import com.vuducminh.nicefood.model.AddonModel;
 import com.vuducminh.nicefood.model.CategoryModel;
 import com.vuducminh.nicefood.model.FoodModel;
+import com.vuducminh.nicefood.model.ShippingOrderModel;
 import com.vuducminh.nicefood.model.SizeModel;
 import com.vuducminh.nicefood.model.TokenModel;
 import com.vuducminh.nicefood.model.UserModel;
@@ -30,6 +32,7 @@ import com.vuducminh.nicefood.R;
 
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -39,6 +42,7 @@ public class Common {
     public static CategoryModel categorySelected;
     public static FoodModel selectedFood;
     public static String currentToken = "";
+    public static ShippingOrderModel currentShippingOrder;
 
     public static String formatPrice(double price) {
         if (price != 0) {
@@ -179,16 +183,67 @@ public class Common {
     }
 
     public static void updateToken(Context context, String newToken) {
-        FirebaseDatabase.getInstance()
-                .getReference(CommonAgr.TOKEN_REF)
-                .child(Common.currentUser.getUid())
-                .setValue(new TokenModel(Common.currentUser.getPhone(), newToken))
-                .addOnFailureListener(e -> {
-                    Toast.makeText(context, "" + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+       if(Common.currentUser != null) {
+           FirebaseDatabase.getInstance()
+                   .getReference(CommonAgr.TOKEN_REF)
+                   .child(Common.currentUser.getUid())
+                   .setValue(new TokenModel(Common.currentUser.getPhone(), newToken))
+                   .addOnFailureListener(e -> {
+                       Toast.makeText(context, "" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                   });
+       }
     }
 
     public static String createTopicOrder() {
         return new StringBuilder("/topics/new_order").toString();
+    }
+    public static List<LatLng> decodePoly(String encode) {
+        List poly = new ArrayList();
+        int index = 0,len = encode.length();
+        int lat = 0, lng = 0;
+        while(index < len) {
+            int b,shift=0,result=0;
+            do{
+                b = encode.charAt(index++)-63;
+                result |= (b & 0x1f) << shift;
+                shift+=5;
+            }while (b >= 0x20);
+            int dlat = ((result & 1) != 0 ? ~(result >> 1):(result >> 1));
+            lat +=dlat;
+            shift = 0;
+            result = 0;
+            do{
+                b = encode.charAt(index++)-63;
+                result |= (b & 0x1f) << shift;
+                shift+=5;
+            }while(b >= 0x20);
+            int dlng = ((result & 1) != 0 ? ~(result >> 1):(result >> 1));
+            lng += dlng;
+
+            LatLng p = new LatLng((((double)lat/1E5)),
+                    (((double)lng/1E5)));
+            poly.add(p);
+        }
+        return poly;
+    }
+
+    public static float getBearing(LatLng begin, LatLng end) {
+        double lat = Math.abs(begin.latitude - end.latitude);
+        double lng = Math.abs(begin.longitude - end.longitude);
+
+
+        if(begin.latitude < end.latitude && begin.longitude < end.longitude) {
+            return (float)(Math.toDegrees(Math.atan(lng/lat)));
+        }
+        else if(begin.latitude >= end.latitude && begin.longitude < end.longitude) {
+            return (float)((90 - Math.toDegrees(Math.atan(lng/lat)))+90);
+        }
+        else if(begin.latitude >= end.latitude && begin.longitude >= end.longitude) {
+            return (float)(Math.toDegrees(Math.atan(lng/lat))+180);
+        }
+        else if(begin.latitude < end.latitude && begin.longitude >= end.longitude) {
+            return (float)((90 - Math.toDegrees(Math.atan(lng/lat)))+270);
+        }
+        return -1;
     }
 }

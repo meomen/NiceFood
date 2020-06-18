@@ -662,8 +662,8 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
                             @Override
                             public void onSuccess(Integer integer) {
                                 Map<String, String> notiData = new HashMap<>();
-                                notiData.put(CommonAgr.NOTI_TITLE, "New OrderModel");
-                                notiData.put(CommonAgr.NOTI_CONTENT, "You have new orderModel from " + Common.currentUser.getPhone());
+                                notiData.put(CommonAgr.NOTI_TITLE, "New Order");
+                                notiData.put(CommonAgr.NOTI_CONTENT, "You have new order from " + Common.currentUser.getPhone());
 
                                 FCMSendData sendData = new FCMSendData(Common.createTopicOrder(), notiData);
 
