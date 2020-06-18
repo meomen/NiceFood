@@ -30,10 +30,18 @@ import com.vuducminh.nicefood.callback.ILoadOrderCallbackListener;
 import com.vuducminh.nicefood.common.Common;
 import com.vuducminh.nicefood.common.CommonAgr;
 import com.vuducminh.nicefood.common.MySwiperHelper;
+import com.vuducminh.nicefood.database.CartDAO;
+import com.vuducminh.nicefood.database.CartDataSource;
+import com.vuducminh.nicefood.database.CartDatabase;
+import com.vuducminh.nicefood.database.CartItem;
+import com.vuducminh.nicefood.database.LocalCartDataSource;
+import com.vuducminh.nicefood.eventbus.CountCartEvent;
 import com.vuducminh.nicefood.model.OrderModel;
 import com.vuducminh.nicefood.R;
 import com.vuducminh.nicefood.model.RefundRequestModel;
 import com.vuducminh.nicefood.model.ShippingOrderModel;
+
+import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,6 +54,11 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 import dmax.dialog.SpotsDialog;
+import io.reactivex.SingleObserver;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 
 public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackListener {
 
@@ -59,6 +72,8 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
 
     private AlertDialog dialog;
     private ILoadOrderCallbackListener listener;
+    private CartDataSource cartDataSource;
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -102,6 +117,8 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
     }
 
     private void initViews(View root) {
+
+        cartDataSource = new LocalCartDataSource(CartDatabase.getInstance(getContext()).cartDAO());
         listener = this;
         dialog = new SpotsDialog.Builder().setContext(getContext()).setCancelable(false).build();
 
@@ -257,6 +274,49 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
                                         }
                                     });
                         }));
+
+                buf.add(new MyButton(getContext(), "Repeat Order", 30, 0, Color.parseColor("#5d4037"),
+                        position -> {
+                            OrderModel orderModel = ((MyOrderAdapter)recycler_orders.getAdapter()).getItemAtPosition(position);
+
+                            dialog.show();
+                            cartDataSource.cleanCart(Common.currentUser.getUid())
+                                    .subscribeOn(Schedulers.io())
+                                    .observeOn(AndroidSchedulers.mainThread())
+                                    .subscribe(new SingleObserver<Integer>() {
+                                        @Override
+                                        public void onSubscribe(Disposable d) {
+
+                                        }
+
+                                        @Override
+                                        public void onSuccess(Integer integer) {
+
+                                            CartItem[] cartItems = orderModel
+                                                    .getCartItemList().toArray(new CartItem[orderModel.getCartItemList().size()]);
+
+                                            compositeDisposable.add(cartDataSource.insertOrReplaceAll(cartItems)
+                                                    .subscribeOn(Schedulers.io())
+                                                    .observeOn(AndroidSchedulers.mainThread())
+                                                    .subscribe(() -> {
+                                                        dialog.dismiss();
+                                                        Toast.makeText(getContext(), "Add all item in order to cart success", Toast.LENGTH_SHORT).show();
+                                                        EventBus.getDefault().postSticky(new CountCartEvent(true));
+                                                    }, throwable -> {
+                                                        dialog.dismiss();
+                                                        Toast.makeText(getContext()," "+throwable.getMessage(), Toast.LENGTH_SHORT).show();
+                                                    })
+                                            );
+                                        }
+
+                                        @Override
+                                        public void onError(Throwable e) {
+                                            dialog.dismiss();
+                                            Toast.makeText(getContext(),"[Error]"+ e.getMessage(),Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+
+                        }));
             }
         };
 
@@ -276,4 +336,9 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
         Toast.makeText(getContext(),message,Toast.LENGTH_SHORT).show();
     }
 
+    @Override
+    public void onStop() {
+        compositeDisposable.clear();
+        super.onStop();
+    }
 }
