@@ -55,7 +55,7 @@ public class LocalCartDataSource implements CartDataSource {
     }
 
     @Override
-    public Single<CartItem> getItemAllOptionsInCart(String uid, String foodId, String foodSize, String foodAddon) {
-        return cartDAO.getItemAllOptionsInCart(uid,foodId,foodSize,foodAddon);
+    public Single<CartItem> getItemAllOptionsInCart(String uid,String categoryId, String foodId, String foodSize, String foodAddon) {
+        return cartDAO.getItemAllOptionsInCart(uid,categoryId,foodId,foodSize,foodAddon);
     }
 }

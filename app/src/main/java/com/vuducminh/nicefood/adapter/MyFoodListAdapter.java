@@ -84,6 +84,7 @@ public class MyFoodListAdapter extends RecyclerView.Adapter<MyFoodListAdapter.My
                 cartItem.setUid(Common.currentUser.getUid());
                 cartItem.setUserPhone(Common.currentUser.getPhone());
 
+                cartItem.setCategoryId(Common.categorySelected.getMenu_id());
                 cartItem.setFoodId(foodModelList.get(position).getId());
                 cartItem.setFoodName(foodModelList.get(position).getName());
                 cartItem.setFoodImage(foodModelList.get(position).getImage());
@@ -94,6 +95,7 @@ public class MyFoodListAdapter extends RecyclerView.Adapter<MyFoodListAdapter.My
                 cartItem.setFoodSize("Default");
 
                 cartDataSource.getItemAllOptionsInCart(Common.currentUser.getUid(),
+                        Common.categorySelected.getMenu_id(),
                         cartItem.getFoodId(),
                         cartItem.getFoodSize(),
                         cartItem.getFoodAddon())

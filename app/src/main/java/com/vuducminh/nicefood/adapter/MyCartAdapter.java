@@ -12,9 +12,14 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.cepheuen.elegantnumberbutton.view.ElegantNumberButton;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.vuducminh.nicefood.common.Common;
 import com.vuducminh.nicefood.database.CartItem;
 import com.vuducminh.nicefood.eventbus.UpdateItemInCart;
 import com.vuducminh.nicefood.R;
+import com.vuducminh.nicefood.model.AddonModel;
+import com.vuducminh.nicefood.model.SizeModel;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -28,10 +33,12 @@ public class MyCartAdapter extends RecyclerView.Adapter<MyCartAdapter.MyViewHold
 
     Context context;
     List<CartItem> cartItemList;
+    Gson gson;
 
     public MyCartAdapter(Context context, List<CartItem> cartItemList) {
         this.context = context;
         this.cartItemList = cartItemList;
+        this.gson = new Gson();
     }
 
     @NonNull
@@ -50,6 +57,26 @@ public class MyCartAdapter extends RecyclerView.Adapter<MyCartAdapter.MyViewHold
 
         holder.tv_food_price.setText(new StringBuilder("").
                 append(cartItem.getFoodPrice() + cartItem.getFoodExtraPrice()));
+
+        if(cartItemList.get(position).getFoodSize() != null) {
+            if(cartItemList.get(position).getFoodSize().equals("Default")) {
+                holder.tv_food_size.setText(new StringBuilder("Size: ").append("Default"));
+            }
+            else {
+                SizeModel sizeModel = gson.fromJson(cartItemList.get(position).getFoodSize(),new TypeToken<SizeModel>(){}.getType());
+                holder.tv_food_size.setText(new StringBuilder("Size: ").append(sizeModel.getName()));
+            }
+        }
+
+        if(cartItemList.get(position).getFoodAddon() != null) {
+            if(cartItemList.get(position).getFoodAddon().equals("Default"))
+                holder.tv_food_addon.setText(new StringBuilder("Addon: ").append("Default"));
+            else {
+                List<AddonModel> addonModels = gson.fromJson(cartItemList.get(position).getFoodAddon(),
+                        new TypeToken<List<AddonModel>>(){}.getType());
+                holder.tv_food_addon.setText(new StringBuilder("Addon: ").append(Common.getListAddon(addonModels)));
+            }
+        }
 
         holder.numberButton.setNumber(String.valueOf(cartItem.getFoodQuantity()));
         //Event
@@ -82,6 +109,10 @@ public class MyCartAdapter extends RecyclerView.Adapter<MyCartAdapter.MyViewHold
         TextView tv_food_name;
         @BindView(R.id.tv_food_price)
         TextView tv_food_price;
+        @BindView(R.id.tv_food_size)
+        TextView tv_food_size;
+        @BindView(R.id.tv_food_addon)
+        TextView tv_food_addon;
         @BindView(R.id.number_button)
         ElegantNumberButton numberButton;
 

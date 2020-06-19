@@ -246,4 +246,29 @@ public class Common {
         }
         return -1;
     }
+
+    public static String getListAddon(List<AddonModel> addonModels) {
+        StringBuilder result = new StringBuilder();
+        for(AddonModel addonModel: addonModels) {
+            result.append(addonModel.getName()).append(",");
+        }
+        if(result.length() == 0) {
+            return "Default";
+        }
+        return result.substring(0,result.length()-1);
+    }
+
+    public static FoodModel findFoodInListById(CategoryModel categoryModel, String foodId) {
+        if(categoryModel.getFoods() != null && categoryModel.getFoods().size() > 0) {
+            for (FoodModel foodModel: categoryModel.getFoods()) {
+                if(foodModel.getId().equals(foodId)) {
+                    return foodModel;
+                }
+            }
+            return null;
+        }
+        else {
+            return null;
+        }
+    }
 }

@@ -2,22 +2,30 @@ package com.vuducminh.nicefood.ui.cart;
 
 import android.content.DialogInterface;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.Parcelable;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -45,13 +53,19 @@ import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.vuducminh.nicefood.adapter.MyCartAdapter;
 import com.vuducminh.nicefood.callback.ILoadTimeFromFirebaseListener;
+import com.vuducminh.nicefood.callback.ISearchCategoryCallbackListener;
 import com.vuducminh.nicefood.common.Common;
 import com.vuducminh.nicefood.common.CommonAgr;
 import com.vuducminh.nicefood.common.MySwiperHelper;
@@ -63,9 +77,13 @@ import com.vuducminh.nicefood.eventbus.CountCartEvent;
 import com.vuducminh.nicefood.eventbus.HideFABCart;
 import com.vuducminh.nicefood.eventbus.MenuItemBack;
 import com.vuducminh.nicefood.eventbus.UpdateItemInCart;
+import com.vuducminh.nicefood.model.AddonModel;
+import com.vuducminh.nicefood.model.CategoryModel;
 import com.vuducminh.nicefood.model.FCMservice.FCMSendData;
+import com.vuducminh.nicefood.model.FoodModel;
 import com.vuducminh.nicefood.model.OrderModel;
 import com.vuducminh.nicefood.R;
+import com.vuducminh.nicefood.model.SizeModel;
 import com.vuducminh.nicefood.remote.IFCMService;
 import com.vuducminh.nicefood.remote.RetrofitFCMClient;
 
@@ -75,6 +93,7 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -94,12 +113,17 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 
-public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListener {
+public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListener, ISearchCategoryCallbackListener, TextWatcher {
 
     private static final int REQUEST_BAINTREE_CODE = 1999;
     private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     private Parcelable recyclerViewState;
+
+    private BottomSheetDialog addonBottomSheetDialog;
+    private ChipGroup chip_group_addon,chip_group_user_selected_addon;
+    private EditText edt_search;
+    private ISearchCategoryCallbackListener searchFoodCallbackListener;
 
     private CartViewModel cartViewModel;
     private CartDataSource cartDataSource;
@@ -148,7 +172,7 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
         RadioButton rdi_cod = (RadioButton) view.findViewById(R.id.rdi_cod);
         RadioButton rdi_braintree = (RadioButton) view.findViewById(R.id.rdi_braintree);
 
-        places_fragment = (AutocompleteSupportFragment)getActivity().getSupportFragmentManager()
+        places_fragment = (AutocompleteSupportFragment) getActivity().getSupportFragmentManager()
                 .findFragmentById(R.id.places_autocomplete_fragment);
 
         places_fragment.setPlaceFields(placeFields);
@@ -161,7 +185,7 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
 
             @Override
             public void onError(@NonNull Status status) {
-                Toast.makeText(getContext(),""+status.getStatusMessage(),Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "" + status.getStatusMessage(), Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -308,6 +332,7 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
 
     private void initViews() {
 
+        searchFoodCallbackListener = this;
         initPlaceView();
 
         setHasOptionsMenu(true);
@@ -350,14 +375,76 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
                                         }
                                     });
                         }));
+
+                buf.add(new MyButton(getContext(), "Update", 30, 0, Color.parseColor("#5D4037"),
+                        position -> {
+                            CartItem cartItem = adapter.getItemAtPosition(position);
+                            FirebaseDatabase.getInstance()
+                                    .getReference(CommonAgr.CATEGORY_REF)
+                                    .child(cartItem.getCategoryId())
+                                    .addListenerForSingleValueEvent(new ValueEventListener() {
+                                        @Override
+                                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                            if (dataSnapshot.exists()) {
+                                                CategoryModel categoryModel = dataSnapshot.getValue(CategoryModel.class);
+                                                searchFoodCallbackListener.onSearchCategoryFound(categoryModel, cartItem);
+                                            } else {
+                                                searchFoodCallbackListener.onSearchCategoryNotFound("Food not found");
+                                            }
+                                        }
+
+                                        @Override
+                                        public void onCancelled(@NonNull DatabaseError databaseError) {
+                                            searchFoodCallbackListener.onSearchCategoryNotFound(databaseError.getMessage());
+                                        }
+                                    });
+                        }));
             }
         };
 
         sumAllItemCart();
+
+        //Addon
+        addonBottomSheetDialog = new BottomSheetDialog(getContext(),R.style.DialogStyle);
+        View layout_addon_display = getLayoutInflater().inflate(R.layout.layout_addon_display,null);
+        chip_group_addon = (ChipGroup) layout_addon_display.findViewById(R.id.chip_group_addon);
+        edt_search = (EditText) layout_addon_display.findViewById(R.id.edt_search);
+        addonBottomSheetDialog.setContentView(layout_addon_display);
+
+        addonBottomSheetDialog.setOnDismissListener(dialogInterface -> {
+            displayUserSelectedAddon(chip_group_user_selected_addon);
+            calculateTotalPrice();
+        });
+
+    }
+
+    private void displayUserSelectedAddon(ChipGroup chip_group_user_selected_addon) {
+        if(Common.selectedFood.getUserSelectedAddon() != null && Common.selectedFood.getUserSelectedAddon().size() > 0) {
+            chip_group_user_selected_addon.removeAllViews();
+            for(AddonModel addonModel:Common.selectedFood.getUserSelectedAddon()) {
+                Chip chip = (Chip)getLayoutInflater().inflate(R.layout.layout_chip_with_delete_icon, null);
+                chip.setText(new StringBuilder(addonModel.getName()).append("(+$")
+                        .append(addonModel.getPrice()).append(")"));
+                chip.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                        if(isChecked) {
+                            if(Common.selectedFood.getUserSelectedAddon() == null)
+                                Common.selectedFood.setUserSelectedAddon(new ArrayList<>());
+                            Common.selectedFood.getUserSelectedAddon().add(addonModel);
+                        }
+                    }
+                });
+                chip_group_user_selected_addon.addView(chip);
+            }
+        }
+        else {
+            chip_group_user_selected_addon.removeAllViews();
+        }
     }
 
     private void initPlaceView() {
-        Places.initialize(getContext(),getString(R.string.google_maps_key));
+        Places.initialize(getContext(), getString(R.string.google_maps_key));
         placesClient = Places.createClient(getContext());
     }
 
@@ -535,7 +622,7 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
 
                     @Override
                     public void onError(Throwable e) {
-                        if(!e.getMessage().contains("Query returned empty result set")) {
+                        if (!e.getMessage().contains("Query returned empty result set")) {
                             Toast.makeText(getContext(), "" + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }
                     }
@@ -607,7 +694,7 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
 
                             @Override
                             public void onError(Throwable e) {
-                                if(!e.getMessage().contains("Query returned empty result set")) {
+                                if (!e.getMessage().contains("Query returned empty result set")) {
                                     Toast.makeText(getContext(), "" + e.getMessage(), Toast.LENGTH_SHORT).show();
                                 }
 
@@ -690,6 +777,176 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
         });
     }
 
+    private void showUpdateDialog(CartItem cartItem, FoodModel foodModel) {
+        Common.selectedFood =foodModel;
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        View itemView = LayoutInflater.from(getContext()).inflate(R.layout.layout_dialog_update_cart,null);
+        builder.setView(itemView);
+
+        //View
+        Button btn_ok = (Button)itemView.findViewById(R.id.btn_ok);
+        Button btn_cancle = (Button)itemView.findViewById(R.id.btn_cancle);
+
+        RadioGroup rdi_group_size = (RadioGroup)itemView.findViewById(R.id.rdi_group_size);
+        chip_group_user_selected_addon = (ChipGroup)itemView.findViewById(R.id.chip_group_user_selected_addon);
+        ImageView img_add_on =(ImageView)itemView.findViewById(R.id.img_add_addon);
+        img_add_on.setOnClickListener(view -> {
+            if(foodModel.getAddon() != null) {
+                displayAddonList();
+                addonBottomSheetDialog.show();
+            }
+        });
+
+        //Size
+        if(foodModel.getSize() != null) {
+            for(SizeModel sizeModel : foodModel.getSize()) {
+                RadioButton radioButton = new RadioButton(getContext());
+                radioButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                        if(isChecked) {
+                            Common.selectedFood.setUserSelectedSize(sizeModel);
+                        }
+
+                        calculateTotalPrice();
+                    }
+                });
+
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0,LinearLayout.LayoutParams.MATCH_PARENT,1.0f);
+                radioButton.setLayoutParams(params);
+                radioButton.setText(sizeModel.getName());
+                radioButton.setTag(sizeModel.getPrice());
+
+                rdi_group_size.addView(radioButton);
+            }
+
+            if(rdi_group_size.getChildCount() > 0) {
+                RadioButton radioButton = (RadioButton)rdi_group_size.getChildAt(0);
+                radioButton.setChecked(true);
+            }
+        }
+
+        //Addon
+        displayAlreadySelectedAddon(chip_group_user_selected_addon,cartItem);
+
+        //Show Dialog
+        AlertDialog dialog = builder.create();
+        dialog.show();
+        //Custom Dialog
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.getWindow().setGravity(Gravity.CENTER);
+        //Event
+        btn_ok.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cartDataSource.deleteCartItem(cartItem)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new SingleObserver<Integer>() {
+                            @Override
+                            public void onSubscribe(Disposable d) {
+
+                            }
+
+                            @Override
+                            public void onSuccess(Integer integer) {
+                                if(Common.selectedFood.getUserSelectedAddon() != null) {
+                                    cartItem.setFoodAddon(new Gson().toJson(Common.selectedFood.getUserSelectedAddon()));
+                                }
+                                else
+                                    cartItem.setFoodAddon("Default");
+                                if(Common.selectedFood.getUserSelectedSize() != null) {
+                                    cartItem.setFoodSize(new Gson().toJson(Common.selectedFood.getUserSelectedSize()));
+                                }
+                                else
+                                    cartItem.setFoodSize("Default");
+
+                                cartItem.setFoodExtraPrice(Common.calculateExtraPrice(Common.selectedFood.getUserSelectedSize(),
+                                        Common.selectedFood.getUserSelectedAddon()));
+
+                                //insert new
+                                compositeDisposable.add(cartDataSource.insertOrReplaceAll(cartItem)
+                                        .subscribeOn(Schedulers.io())
+                                        .observeOn(AndroidSchedulers.mainThread())
+                                        .subscribe(() -> {
+                                            EventBus.getDefault().postSticky(new CountCartEvent(true));
+                                            calculateTotalPrice();
+                                            dialog.dismiss();
+                                            Toast.makeText(getContext(),"Update Cart Success",Toast.LENGTH_SHORT).show();
+                                        }, throwable -> {
+                                            Toast.makeText(getContext(),""+throwable.getMessage(),Toast.LENGTH_SHORT).show();
+
+                                        })
+                                );
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                Toast.makeText(getContext(),""+e.getMessage(),Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            }
+        });
+
+        btn_cancle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+    }
+
+    private void displayAlreadySelectedAddon(ChipGroup chip_group_user_selected_addon, CartItem cartItem) {
+        if(cartItem.getFoodAddon() != null && !cartItem.getFoodAddon().equals("Default")) {
+            List<AddonModel> addonModels = new Gson().fromJson(
+                    cartItem.getFoodAddon(),new TypeToken<List<AddonModel>>(){}.getType());
+            if(Common.selectedFood.getUserSelectedAddon() == null)
+                Common.selectedFood.setUserSelectedAddon(addonModels);
+            chip_group_user_selected_addon.removeAllViews();
+            //Add all view
+            for(AddonModel addonModel: addonModels) {
+                Chip chip = (Chip)getLayoutInflater().inflate(R.layout.layout_chip_with_delete_icon, null);
+                chip.setText(new StringBuilder(addonModel.getName()).append("(+$")
+                        .append(addonModel.getPrice()).append(")"));
+                chip.setClickable(false);
+                chip.setOnCloseIconClickListener(v -> {
+                    chip_group_user_selected_addon.removeView(v);
+                    Common.selectedFood.getUserSelectedAddon().remove(addonModel);
+                    calculateTotalPrice();
+                });
+                chip_group_user_selected_addon.addView(chip);
+            }
+        }
+    }
+
+    private void displayAddonList() {
+        if(Common.selectedFood.getAddon() != null && Common.selectedFood.getAddon().size() > 0) {
+            chip_group_addon.clearCheck();
+            chip_group_addon.removeAllViews();
+
+            edt_search.addTextChangedListener(this);
+
+            //Add all view
+            for(AddonModel addonModel: Common.selectedFood.getAddon()) {
+                Chip chip = (Chip)getLayoutInflater().inflate(R.layout.layout_addon_item, null);
+                chip.setText(new StringBuilder(addonModel.getName()).append("(+$")
+                        .append(addonModel.getPrice()).append(")"));
+                chip.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                        if(isChecked) {
+                            if(Common.selectedFood.getUserSelectedAddon() == null)
+                                Common.selectedFood.setUserSelectedAddon(new ArrayList<>());
+                            Common.selectedFood.getUserSelectedAddon().add(addonModel);
+                        }
+                    }
+                });
+                chip_group_addon.addView(chip);
+            }
+        }
+    }
+
+
     @Override
     public void onLoadTimeSuccess(OrderModel orderModel, long estimateTimeInMs) {
         orderModel.setCreateDate(estimateTimeInMs);
@@ -703,85 +960,55 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
     }
 
 
-//    @Override
-//    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-//        super.onActivityResult(requestCode, resultCode, data);
-//        if(requestCode == REQUEST_BAINTREE_CODE && resultCode == Activity.RESULT_OK) {
-//            DropInResult result = data.getParcelableExtra(DropInResult.EXTRA_DROP_IN_RESULT);
-//            PaymentMethodNonce nonce = result.getPaymentMethodNonce();
-//
-//            // calculate sum cart
-//            cartDataSource.sumPriceInCart(Common.currentUser.getUid())
-//                    .subscribeOn(Schedulers.io())
-//                    .observeOn(AndroidSchedulers.mainThread())
-//                    .subscribe(new SingleObserver<Double>() {
-//                        @Override
-//                        public void onSubscribe(Disposable d) {
-//
-//                        }
-//
-//                        @Override
-//                        public void onSuccess(Double totalPrice) {
-//
-//                            // Get all item in cart to create order
-//                            compositeDisposable.add(cartDataSource.getAllCart(Common.currentUser.getUid())
-//                            .subscribeOn(Schedulers.io())
-//                            .observeOn(AndroidSchedulers.mainThread())
-//                            .subscribe(new Consumer<List<CartItem>>() {
-//                                @Override
-//                                public void accept(List<CartItem> cartItems) throws Exception {
-//                                    //Submit payment
-//                                    compositeDisposable.add(iCloudFunction.submitPayment(totalPrice,
-//                                            nonce.getNonce())
-//                                    .subscribeOn(Schedulers.io())
-//                                    .observeOn(AndroidSchedulers.mainThread())
-//                                    .subscribe(new Consumer<BraintreeTransaction>() {
-//                                        @Override
-//                                        public void accept(BraintreeTransaction braintreeTransaction) throws Exception {
-//                                            if(braintreeTransaction.isSuccess()) {
-//                                                double finalPrice = totalPrice; // We will modify formuls discount late
-//                                                OrderModel order = new OrderModel();
-//                                                order.setUserId(Common.currentUser.getUid());
-//                                                order.setUserName(Common.currentUser.getName());
-//                                                order.setUserPhone(Common.currentUser.getPhone());
-//                                                order.setShippingAddress(address);
-//                                                order.setCommet(comment);
-//
-//                                                if(currentLocation != null) {
-//                                                    order.setLat(currentLocation.getLatitude());
-//                                                    order.setLng(currentLocation.getLongitude());
-//                                                }
-//                                                else {
-//                                                    order.setLat(-0.1f);
-//                                                    order.setLng(-0.1f);
-//                                                }
-//
-//                                                order.setCartItemList(cartItems);
-//                                                order.setTotalPayment(totalPrice);
-//                                                order.setDiscount(0);
-//                                                order.setFinalPayment(finalPrice);
-//                                                order.setCod(false);
-//                                                order.setTransactionId(braintreeTransaction.getTransaction().getId());
-//
-//                                                // Submit this order object to Firebase
-//                                                writeOrderToFireBase(order);
-//                                            }
-//                                        }
-//                                    },throwable -> {
-//                                        Toast.makeText(getContext(),""+throwable.getMessage(),Toast.LENGTH_SHORT).show();
-//                                    }));
-//                                }
-//                            },throwable -> {
-//                                Toast.makeText(getContext(),""+throwable.getMessage(),Toast.LENGTH_SHORT).show();
-//
-//                            }));
-//                        }
-//
-//                        @Override
-//                        public void onError(Throwable e) {
-//                            Toast.makeText(getContext(),""+e.getMessage(),Toast.LENGTH_SHORT).show();
-//                        }
-//                    });
-//        }
-//    }
+    @Override
+    public void onSearchCategoryFound(CategoryModel categoryModel, CartItem cartItem) {
+        FoodModel foodModel1 = Common.findFoodInListById(categoryModel,cartItem.getFoodId());
+        if(foodModel1 != null) {
+            showUpdateDialog(cartItem,foodModel1);
+        }
+        else {
+            Toast.makeText(getContext(),"Food not found",Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onSearchCategoryNotFound(String message) {
+        Toast.makeText(getContext(),message,Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+    }
+
+    @Override
+    public void onTextChanged(CharSequence charSequence, int start, int before, int count) {
+        chip_group_addon.clearCheck();
+        chip_group_addon.removeAllViews();
+        for(AddonModel addonModel:Common.selectedFood.getAddon()) {
+            if(addonModel.getName().toLowerCase().contains(charSequence.toString().toLowerCase())) {
+                Chip chip = (Chip)getLayoutInflater().inflate(R.layout.layout_addon_item, null);
+                chip.setText(new StringBuilder(addonModel.getName()).append("(+$")
+                        .append(addonModel.getPrice()).append(")"));
+                chip.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                    @Override
+                    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                        if(isChecked) {
+                            if(Common.selectedFood.getUserSelectedAddon() == null)
+                                Common.selectedFood.setUserSelectedAddon(new ArrayList<>());
+                            Common.selectedFood.getUserSelectedAddon().add(addonModel);
+                        }
+                    }
+                });
+                chip_group_addon.addView(chip);
+            }
+        }
+    }
+
+    @Override
+    public void afterTextChanged(Editable s) {
+
+    }
 }
+
+

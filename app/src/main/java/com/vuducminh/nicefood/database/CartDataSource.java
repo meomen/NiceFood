@@ -25,6 +25,6 @@ public interface CartDataSource {
 
     Single<Integer> cleanCart(String uid);
 
-    Single<CartItem> getItemAllOptionsInCart(String uid,String foodId,String foodSize,String foodAddon);
+    Single<CartItem> getItemAllOptionsInCart(String uid,String categoryId,String foodId,String foodSize,String foodAddon);
 
 }
