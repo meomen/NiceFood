@@ -1,14 +1,19 @@
 package com.vuducminh.nicefood;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
+import android.Manifest;
 import android.animation.ValueAnimator;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -33,8 +38,15 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.karumi.dexter.Dexter;
+import com.karumi.dexter.PermissionToken;
+import com.karumi.dexter.listener.PermissionDeniedResponse;
+import com.karumi.dexter.listener.PermissionGrantedResponse;
+import com.karumi.dexter.listener.PermissionRequest;
+import com.karumi.dexter.listener.single.PermissionListener;
 import com.vuducminh.nicefood.common.Common;
 import com.vuducminh.nicefood.common.CommonAgr;
+import com.vuducminh.nicefood.common.MyCustomMarkerAdapter;
 import com.vuducminh.nicefood.model.ShippingOrderModel;
 import com.vuducminh.nicefood.remote.IGoogleAPI;
 import com.vuducminh.nicefood.remote.RetrofitGoogleAPIClient;
@@ -42,8 +54,11 @@ import com.vuducminh.nicefood.remote.RetrofitGoogleAPIClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.nio.Buffer;
 import java.util.List;
 
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.functions.Consumer;
@@ -54,9 +69,9 @@ public class TrackingOrderActivity extends FragmentActivity implements OnMapRead
     private GoogleMap mMap;
     private Marker shipperMarket;
 
-    private PolylineOptions polylineOptions,blackPolylineOptions;
+    private PolylineOptions polylineOptions, blackPolylineOptions;
     private List<LatLng> polylineList;
-    private Polyline yellowPolyline,grayPolyline,blackPolyline;
+    private Polyline yellowPolyline, grayPolyline, blackPolyline;
 
     private IGoogleAPI iGoogleAPI;
     private CompositeDisposable compositeDisposable = new CompositeDisposable();
@@ -64,17 +79,45 @@ public class TrackingOrderActivity extends FragmentActivity implements OnMapRead
 
     private Handler handler;
     private int index, next;
-    private LatLng start,end;
+    private LatLng start, end;
     private float v;
-    private double lat,lng;
+    private double lat, lng;
     private boolean isInit = false;
 
+    @OnClick(R.id.btn_call)
+    void onCallClick() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+            Dexter.withActivity(this)
+                    .withPermission(Manifest.permission.CALL_PHONE)
+                    .withListener(new PermissionListener() {
+                        @Override
+                        public void onPermissionGranted(PermissionGrantedResponse response) {
+
+                        }
+
+                        @Override
+                        public void onPermissionDenied(PermissionDeniedResponse response) {
+                            Toast.makeText(TrackingOrderActivity.this,"You must enable this permission to CALL ",Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
+
+                        }
+                    }).check();
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_CALL);
+        intent.setData(Uri.parse(new StringBuilder("tel: ").append(Common.currentShippingOrder.getShipperPhone()).toString()));
+        startActivity(intent);
+    }
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tracking_order);
+        ButterKnife.bind(this);
 
         iGoogleAPI = RetrofitGoogleAPIClient.getInstance().create(IGoogleAPI.class);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -107,6 +150,8 @@ public class TrackingOrderActivity extends FragmentActivity implements OnMapRead
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
+        mMap.setInfoWindowAdapter(new MyCustomMarkerAdapter(getLayoutInflater()));
+
         mMap.getUiSettings().setZoomControlsEnabled(true);
 
         drawRoutes();
@@ -134,9 +179,14 @@ public class TrackingOrderActivity extends FragmentActivity implements OnMapRead
 
             shipperMarket = mMap.addMarker(new MarkerOptions()
                     .icon(BitmapDescriptorFactory.fromBitmap(resized))
-                    .title(Common.currentShippingOrder.getShipperName())
-                    .snippet(Common.currentShippingOrder.getShipperPhone())
+                    .title(new StringBuilder("Shipper" ).append(Common.currentShippingOrder.getShipperName()).toString())
+                    .snippet(new StringBuilder("Phone: ").append(Common.currentShippingOrder.getShipperPhone())
+                            .append("\n")
+                            .append("Estimate Time Delivery: ")
+                            .append(Common.currentShippingOrder.getEstimateTime()).toString())
                     .position(locationShipper));
+
+            shipperMarket.showInfoWindow();
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(locationShipper,18));
         }
         else {

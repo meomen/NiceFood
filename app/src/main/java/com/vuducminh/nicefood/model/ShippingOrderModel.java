@@ -6,6 +6,9 @@ public class ShippingOrderModel {
     private OrderModel orderModel;
     private boolean isStartTrip;
 
+
+    private String estimateTime;
+
     public ShippingOrderModel() {
     }
 
@@ -74,5 +77,12 @@ public class ShippingOrderModel {
         isStartTrip = startTrip;
     }
 
+    public String getEstimateTime() {
+        return estimateTime;
+    }
+
+    public void setEstimateTime(String estimateTime) {
+        this.estimateTime = estimateTime;
+    }
 }
 
