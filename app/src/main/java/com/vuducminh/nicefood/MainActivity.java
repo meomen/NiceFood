@@ -29,6 +29,7 @@ import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -62,7 +63,6 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth.AuthStateListener listener;
     private AlertDialog dialog;
     private CompositeDisposable compositeDisposable = new CompositeDisposable();
-//    private ICloudFunction iCloudFunction;
     private List<AuthUI.IdpConfig> providers;
 
     private DatabaseReference userRef;
@@ -105,11 +105,11 @@ public class MainActivity extends AppCompatActivity {
         placesClient = Places.createClient(this);
 
 
-        providers = Arrays.asList(new AuthUI.IdpConfig.PhoneBuilder().build());
+        providers = Arrays.asList(new AuthUI.IdpConfig.PhoneBuilder().build(),
+                new AuthUI.IdpConfig.EmailBuilder().build());
         userRef = FirebaseDatabase.getInstance().getReference(CommonAgr.USER_REFERENCES);
         firebaseAuth = FirebaseAuth.getInstance();
         dialog = new SpotsDialog.Builder().setCancelable(false).setContext(this).build();
-//        iCloudFunction = RetrofitICloudClient.getInstance().create(ICloudFunction.class);
         listener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
@@ -194,6 +194,7 @@ public class MainActivity extends AppCompatActivity {
         builder.setMessage("Please fill information");
 
         View itemView = LayoutInflater.from(this).inflate(R.layout.layout_register, null);
+        TextInputLayout phone_input_layout = (TextInputLayout)itemView.findViewById(R.id.phone_input_layout);
         EditText edt_name = (EditText) itemView.findViewById(R.id.edt_name);
         TextView tv_address_detail = (TextView)itemView.findViewById(R.id.tv_address_detail);
 
@@ -216,8 +217,18 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        if(user.getPhoneNumber() == null || TextUtils.isEmpty(user.getPhoneNumber())) {
+            phone_input_layout.setHint("Email");
+            edt_phone.setText(user.getEmail());
+            edt_name.setText(user.getDisplayName());
+        }
+        else {
+            phone_input_layout.setHint("Phone");
+            edt_phone.setText(user.getPhoneNumber());
+        }
+
         // Dổ dữ liệu và bắt sự kiện
-        edt_phone.setText(user.getPhoneNumber());
+
 
         builder.setView(itemView);
         builder.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
@@ -275,7 +286,8 @@ public class MainActivity extends AppCompatActivity {
                             });
                 }
                 else {
-
+                    Toast.makeText(MainActivity.this,"Please select address",Toast.LENGTH_SHORT).show();
+                    return;
                 }
             }
 
@@ -329,6 +341,8 @@ public class MainActivity extends AppCompatActivity {
 
         startActivityForResult(AuthUI.getInstance()
                 .createSignInIntentBuilder()
+                .setLogo(R.drawable.logo)
+                .setTheme(R.style.LoginTheme)
                 .setAvailableProviders(providers)
                 .build()
                 , CommonAgr.APP_REQUEST_CODE);

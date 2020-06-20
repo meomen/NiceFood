@@ -37,6 +37,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.messaging.FirebaseMessaging;
 import com.vuducminh.nicefood.common.Common;
 import com.vuducminh.nicefood.common.CommonAgr;
 import com.vuducminh.nicefood.database.CartDataSource;
@@ -59,6 +60,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.view.Menu;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -75,6 +77,7 @@ import java.util.Map;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import dmax.dialog.SpotsDialog;
+import io.paperdb.Paper;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
@@ -208,10 +211,60 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 showUpdateInfoDialog();
                 break;
             }
+            case R.id.nav_news: {
+                showSubscribeNews();
+                break;
+            }
 
         }
         menuClickId = item.getItemId();
         return true;
+    }
+
+    private void showSubscribeNews() {
+        Paper.init(this);
+        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
+        builder.setTitle("News System");
+        builder.setMessage("Do you want to subscribe from our restaurant?");
+
+        View itemView = LayoutInflater.from(this).inflate(R.layout.layout_subscribe_news, null);
+        CheckBox ckb_news = (CheckBox)itemView.findViewById(R.id.ckb_subscribe_news);
+        boolean isSubsccribeNews = Paper.book().read(CommonAgr.IS_SUBSCRIBE_NEWS,false);
+        if(isSubsccribeNews)
+            ckb_news.setChecked(true);
+
+        builder.setNegativeButton("CANCLE", (dialog, which) -> {
+            dialog.dismiss();
+        }).setPositiveButton("SEND", (dialog, which) -> {
+            if(ckb_news.isChecked()) {
+
+                Paper.book().write(CommonAgr.IS_SUBSCRIBE_NEWS,true);
+                FirebaseMessaging.getInstance()
+                        .subscribeToTopic(CommonAgr.NEWS_TOPIC)
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(HomeActivity.this,e.getMessage(),Toast.LENGTH_SHORT).show();
+                        })
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(HomeActivity.this,"Subscribe successfully!",Toast.LENGTH_SHORT).show();
+                });
+            }
+            else {
+
+                Paper.book().delete(CommonAgr.IS_SUBSCRIBE_NEWS);
+                FirebaseMessaging.getInstance()
+                        .unsubscribeFromTopic(CommonAgr.NEWS_TOPIC)
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(HomeActivity.this,e.getMessage(),Toast.LENGTH_SHORT).show();
+                        })
+                        .addOnSuccessListener(aVoid -> {
+                            Toast.makeText(HomeActivity.this,"Unsubscribe successfully!",Toast.LENGTH_SHORT).show();
+                        });
+            }
+        });
+        builder.setView(itemView);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
     }
 
     private void showUpdateInfoDialog() {

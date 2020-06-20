@@ -1,7 +1,14 @@
 package com.vuducminh.nicefood.services;
 
-import androidx.annotation.NonNull;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.vuducminh.nicefood.common.Common;
@@ -16,10 +23,34 @@ public class MyFCMServices extends FirebaseMessagingService {
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         Map<String,String> dataRecv = remoteMessage.getData();
         if(dataRecv != null) {
-            Common.showNotification(this, new Random().nextInt(),
-                    dataRecv.get(CommonAgr.NOTI_TITLE),
-                    dataRecv.get(CommonAgr.NOTI_CONTENT),
-                    null);
+            if(dataRecv.get(CommonAgr.IS_SEND_IMAGE) != null &&
+            dataRecv.get(CommonAgr.IS_SEND_IMAGE).equals("true")) {
+                Glide.with(this)
+                        .asBitmap()
+                        .load(dataRecv.get(CommonAgr.IMAGE_URL))
+                        .into(new CustomTarget<Bitmap>() {
+
+                            @Override
+                            public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                                Common.showNotificationBigStyle(MyFCMServices.this, new Random().nextInt(),
+                                        dataRecv.get(CommonAgr.NOTI_TITLE),
+                                        dataRecv.get(CommonAgr.NOTI_CONTENT),
+                                        resource,
+                                        null);
+                            }
+
+                            @Override
+                            public void onLoadCleared(@Nullable Drawable placeholder) {
+
+                            }
+                        });
+            }
+            else {
+                Common.showNotification(this, new Random().nextInt(),
+                        dataRecv.get(CommonAgr.NOTI_TITLE),
+                        dataRecv.get(CommonAgr.NOTI_CONTENT),
+                        null);
+            }
         }
     }
 

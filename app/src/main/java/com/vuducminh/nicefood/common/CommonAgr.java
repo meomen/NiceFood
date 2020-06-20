@@ -25,5 +25,9 @@ public class CommonAgr {
     public static final String URL_MAP_GOOGLE = "https://maps.googleapis.com/";
     public static final String REQUEST_REFUND_MODEL = "RequestRefund";
     public static final String SHIPPER_ORDER_REF = "ShippingOrderModel";
+    public static final String NEWS_TOPIC = "news";
+    public static final String IS_SEND_IMAGE = "IS_SEND_IMAGE";
+    public static final String IMAGE_URL = "IMAGE_URL";
 
+    public static String IS_SUBSCRIBE_NEWS = "IS_SUBSCRIBE_NEWS";
 }

@@ -1,3 +1,4 @@
+
 <resources>
 
     <string name="app_name">NiceFood</string>
@@ -36,6 +37,5 @@
 
     <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">AIzaSyCvsxvlCkhA_X4L6BdDA1RO1X6ng-M8Nts</string>
     <string name="title_activity_tracking_order">Map</string>
-
-
+    <string name="menu_subscribe_news">Subscribe News</string>
 </resources>

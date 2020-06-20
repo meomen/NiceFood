@@ -88,6 +88,7 @@ dependencies {
     implementation 'com.braintreepayments.api:drop-in:4.1.1'
     implementation 'com.androidwidgets:formatedittext:0.2.0'
     implementation 'com.squareup.retrofit2:converter-scalars:2.6.1'
+    implementation 'io.paperdb:paperdb:2.6'
 
 }
 apply plugin: 'com.google.gms.google-services'
