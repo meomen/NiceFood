@@ -133,6 +133,7 @@ public class FoodDetailFragment extends Fragment implements TextWatcher {
     @OnClick(R.id.btnCart)
     void onCartItemAddon() {
         CartItem cartItem = new CartItem();
+        cartItem.setRestaurantId(Common.currentRestaurant.getUid());
         cartItem.setUid(Common.currentUser.getUid());
         cartItem.setUserPhone(Common.currentUser.getPhone());
 
@@ -163,7 +164,8 @@ public class FoodDetailFragment extends Fragment implements TextWatcher {
                 Common.categorySelected.getMenu_id(),
                 cartItem.getFoodId(),
                 cartItem.getFoodSize(),
-                cartItem.getFoodAddon())
+                cartItem.getFoodAddon(),
+                Common.currentRestaurant.getUid())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SingleObserver<CartItem>() {
@@ -380,7 +382,9 @@ public class FoodDetailFragment extends Fragment implements TextWatcher {
         waitingDialog.show();
         // Tải dữ liệu đánh giá lên Firebase
         FirebaseDatabase.getInstance()
-                .getReference(CommonAgr.COMMENT_REF)
+                .getReference(CommonAgr.RESTAURANT_REF)
+                .child(Common.currentRestaurant.getUid())
+                .child(CommonAgr.COMMENT_REF)
                 .child(Common.selectedFood.getId())
                 .push()
                 .setValue(commentModel)
@@ -398,7 +402,9 @@ public class FoodDetailFragment extends Fragment implements TextWatcher {
 
     private void addRatingToFood(float ratingValue) {
         FirebaseDatabase.getInstance()
-                .getReference(CommonAgr.CATEGORY_REF)
+                .getReference(CommonAgr.RESTAURANT_REF)
+                .child(Common.currentRestaurant.getUid())
+                .child(CommonAgr.CATEGORY_REF)
                 .child(Common.categorySelected.getMenu_id()) // Truy xuất nhóm thực đơn
                 .child("foods")  // Truy xuất Danh sách thực đơn
                 .child(Common.selectedFood.getKey()) // Truy suất Thực đơn

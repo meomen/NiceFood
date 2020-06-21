@@ -25,6 +25,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.vuducminh.nicefood.model.AddonModel;
 import com.vuducminh.nicefood.model.CategoryModel;
 import com.vuducminh.nicefood.model.FoodModel;
+import com.vuducminh.nicefood.model.RestaurantModel;
 import com.vuducminh.nicefood.model.ShippingOrderModel;
 import com.vuducminh.nicefood.model.SizeModel;
 import com.vuducminh.nicefood.model.TokenModel;
@@ -45,6 +46,7 @@ public class Common {
     public static FoodModel selectedFood;
     public static String currentToken = "";
     public static ShippingOrderModel currentShippingOrder;
+    public static RestaurantModel currentRestaurant;
 
     public static String formatPrice(double price) {
         if (price != 0) {
@@ -197,7 +199,11 @@ public class Common {
     }
 
     public static String createTopicOrder() {
-        return new StringBuilder("/topics/new_order").toString();
+        return new StringBuilder("/topics/")
+                .append(Common.currentRestaurant.getUid())
+                .append("_")
+                .append("new_order")
+                .toString();
     }
     public static List<LatLng> decodePoly(String encode) {
         List poly = new ArrayList();
@@ -307,5 +313,13 @@ public class Common {
         }
         Notification notification = builder.build();
         notificationManager.notify(id, notification);
+    }
+
+    public static String createTopicNews() {
+        return new StringBuilder("/topics/")
+                .append(Common.currentRestaurant.getUid())
+                .append("_")
+                .append("news")
+                .toString();
     }
 }

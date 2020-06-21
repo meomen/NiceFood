@@ -48,11 +48,14 @@ import com.vuducminh.nicefood.eventbus.CategoryClick;
 import com.vuducminh.nicefood.eventbus.CountCartEvent;
 import com.vuducminh.nicefood.eventbus.FoodItemClick;
 import com.vuducminh.nicefood.eventbus.HideFABCart;
+import com.vuducminh.nicefood.eventbus.MenuInflateEvent;
 import com.vuducminh.nicefood.eventbus.MenuItemBack;
+import com.vuducminh.nicefood.eventbus.MenuItemEvent;
 import com.vuducminh.nicefood.eventbus.PopluarCategoryClick;
 import com.vuducminh.nicefood.model.CategoryModel;
 import com.vuducminh.nicefood.model.FoodModel;
 import com.vuducminh.nicefood.model.UserModel;
+import com.vuducminh.nicefood.remote.ICloudFunction;
 
 import androidx.drawerlayout.widget.DrawerLayout;
 
@@ -80,6 +83,7 @@ import dmax.dialog.SpotsDialog;
 import io.paperdb.Paper;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.schedulers.Schedulers;
 
@@ -89,8 +93,13 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     private DrawerLayout drawer;
     private NavController navController;
     private CartDataSource cartDataSource;
+    private NavigationView navigationView;
 
     private android.app.AlertDialog dialog;
+
+    private ICloudFunction cloudFunction;
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
+
 
     int menuClickId = -1;
 
@@ -108,7 +117,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     @Override
     protected void onResume() {
         super.onResume();
-        coutCartItem();
+//        countCartItem();
     }
 
     @Override
@@ -134,10 +143,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
         });
         drawer = findViewById(R.id.drawer_layout);
-        NavigationView navigationView = findViewById(R.id.nav_view);
+        navigationView = findViewById(R.id.nav_view);
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         mAppBarConfiguration = new AppBarConfiguration.Builder(
+                R.id.nav_restaurant,
                 R.id.nav_home, R.id.nav_menu, R.id.nav_food_detail,
                 R.id.nav_view_orders, R.id.nav_cart, R.id.nav_food_list)
                 .setDrawerLayout(drawer)
@@ -152,7 +162,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         TextView tv_user = (TextView) headerView.findViewById(R.id.tv_user);
         Common.setSpanString("Hey, ",Common.currentUser.getName(),tv_user);
 
-        coutCartItem();
+        EventBus.getDefault().postSticky(new HideFABCart(true));
     }
 
     private void initPlaceClient() {
@@ -179,27 +189,38 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         item.setCheckable(true);
         drawer.closeDrawers();
         switch (item.getItemId()) {
+            case R.id.nav_restaurant: {
+                if(item.getItemId() != menuClickId) {
+                    navController.navigate(R.id.nav_restaurant);
+                }
+                break;
+            }
             case R.id.nav_home: {
                 if(item.getItemId() != menuClickId) {
                     navController.navigate(R.id.nav_home);
+                    EventBus.getDefault().postSticky(new MenuInflateEvent(true));
                 }
                 break;
             }
             case R.id.nav_menu: {
                 if(item.getItemId() != menuClickId) {
                     navController.navigate(R.id.nav_menu);
+                    EventBus.getDefault().postSticky(new MenuInflateEvent(true));
                 }
                 break;
             }
             case R.id.nav_cart: {
                 if(item.getItemId() != menuClickId) {
                     navController.navigate(R.id.nav_cart);
+                    EventBus.getDefault().postSticky(new MenuInflateEvent(true));
+
                 }
                 break;
             }
             case R.id.nav_view_orders: {
                 if(item.getItemId() != menuClickId) {
                     navController.navigate(R.id.nav_view_orders);
+                    EventBus.getDefault().postSticky(new MenuInflateEvent(true));
                 }
                 break;
             }
@@ -229,7 +250,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
         View itemView = LayoutInflater.from(this).inflate(R.layout.layout_subscribe_news, null);
         CheckBox ckb_news = (CheckBox)itemView.findViewById(R.id.ckb_subscribe_news);
-        boolean isSubsccribeNews = Paper.book().read(CommonAgr.IS_SUBSCRIBE_NEWS,false);
+        boolean isSubsccribeNews = Paper.book().read(Common.currentRestaurant.getUid(),false);
         if(isSubsccribeNews)
             ckb_news.setChecked(true);
 
@@ -237,10 +258,10 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             dialog.dismiss();
         }).setPositiveButton("SEND", (dialog, which) -> {
             if(ckb_news.isChecked()) {
-
-                Paper.book().write(CommonAgr.IS_SUBSCRIBE_NEWS,true);
+                Toast.makeText(HomeActivity.this,"TOPIC: "+Common.createTopicNews(),Toast.LENGTH_SHORT).show();
+                Paper.book().write(Common.currentRestaurant.getUid(),true);
                 FirebaseMessaging.getInstance()
-                        .subscribeToTopic(CommonAgr.NEWS_TOPIC)
+                        .subscribeToTopic(Common.createTopicNews())
                         .addOnFailureListener(e -> {
                             Toast.makeText(HomeActivity.this,e.getMessage(),Toast.LENGTH_SHORT).show();
                         })
@@ -250,9 +271,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             }
             else {
 
-                Paper.book().delete(CommonAgr.IS_SUBSCRIBE_NEWS);
+                Paper.book().delete(Common.currentRestaurant.getUid());
                 FirebaseMessaging.getInstance()
-                        .unsubscribeFromTopic(CommonAgr.NEWS_TOPIC)
+                        .unsubscribeFromTopic(Common.createTopicNews())
                         .addOnFailureListener(e -> {
                             Toast.makeText(HomeActivity.this,e.getMessage(),Toast.LENGTH_SHORT).show();
                         })
@@ -395,11 +416,13 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     protected void onStart() {
         super.onStart();
         EventBus.getDefault().register(this);
+
     }
 
     @Override
     protected void onStop() {
         EventBus.getDefault().unregister(this);
+        compositeDisposable.clear();
         super.onStop();
     }
 
@@ -435,7 +458,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             dialog.show();
 
             FirebaseDatabase.getInstance()
-                    .getReference(CommonAgr.CATEGORY_REF)
+                    .getReference(CommonAgr.RESTAURANT_REF)
+                    .child(Common.currentRestaurant.getUid())
+                    .child(CommonAgr.CATEGORY_REF)
                     .child(event.getBestDealModel().getMenu_id())
                     .addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
@@ -445,7 +470,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                 Common.categorySelected.setMenu_id(dataSnapshot.getKey());
 
                                 FirebaseDatabase.getInstance()
-                                        .getReference(CommonAgr.CATEGORY_REF)
+                                        .getReference(CommonAgr.RESTAURANT_REF)
+                                        .child(Common.currentRestaurant.getUid())
+                                        .child(CommonAgr.CATEGORY_REF)
                                         .child(event.getBestDealModel().getMenu_id())
                                         .child(CommonAgr.FOOD_REF)
                                         .orderByChild("id")
@@ -498,7 +525,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
             dialog.show();
 
             FirebaseDatabase.getInstance()
-                    .getReference(CommonAgr.CATEGORY_REF)
+                    .getReference(CommonAgr.RESTAURANT_REF)
+                    .child(Common.currentRestaurant.getUid())
+                    .child(CommonAgr.CATEGORY_REF)
                     .child(event.getPopluarCategoryModel().getMenu_id())
                     .addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
@@ -508,7 +537,9 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                 Common.categorySelected.setMenu_id(dataSnapshot.getKey());
 
                                 FirebaseDatabase.getInstance()
-                                        .getReference(CommonAgr.CATEGORY_REF)
+                                        .getReference(CommonAgr.RESTAURANT_REF)
+                                        .child(Common.currentRestaurant.getUid())
+                                        .child(CommonAgr.CATEGORY_REF)
                                         .child(event.getPopluarCategoryModel().getMenu_id())
                                         .child(CommonAgr.FOOD_REF)
                                         .orderByChild("id")
@@ -558,7 +589,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     @Subscribe(sticky = true,threadMode = ThreadMode.MAIN)
     private void countCartAgain(CountCartEvent event) {
         if(event.isSuccess()) {
-            coutCartItem();
+            if(Common.currentRestaurant != null)
+                countCartItem();
         }
     }
 
@@ -567,12 +599,13 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     @Subscribe(sticky = true,threadMode = ThreadMode.MAIN)
     public void onCartCounter(CountCartEvent event) {
         if(event.isSuccess()) {
-           coutCartItem();
+            countCartItem();
         }
     }
 
-    private void coutCartItem() {
-        cartDataSource.countItemInCart(Common.currentUser.getUid())
+    private void countCartItem() {
+        cartDataSource.countItemInCart(Common.currentUser.getUid(),
+                Common.currentRestaurant.getUid())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new SingleObserver<Integer>() {
@@ -608,4 +641,48 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
+    @Subscribe(sticky = true,threadMode = ThreadMode.MAIN)
+    public void onRestaurantClick(MenuItemEvent event) {
+
+//        cloudFunctions = RetrofitICloudClient.getInstance(event.getRestaurantModel().getPaymentUrl()).create(ICloudFunction.class);
+//        Map<String,String> headers = new HashMap<>();
+//        headers.put("Authorization",Common.buildToken(Common.authoriseKey));
+
+        //                                    compositeDisposable.add(iCloudFunction.getToken()
+//                                            .subscribeOn(Schedulers.io())
+//                                            .observeOn(AndroidSchedulers.mainThread())
+//                                            .subscribe(new Consumer<BraintreeToken>() {
+//                                                @Override
+//                                                public void accept(BraintreeToken braintreeToken) throws Exception {
+//                                                    dialogInterface.dismiss();
+//
+//                                                }
+//                                            }, new Consumer<Throwable>() {
+//                                                @Override
+//                                                public void accept(Throwable throwable) throws Exception {
+//                                                    dialog.dismiss();
+//                                                    Toast.makeText(MainActivity.this,""+throwable.getMessage(),Toast.LENGTH_SHORT).show();
+//                                                }
+//                                            }));
+        
+       Bundle bundle = new Bundle();
+       bundle.putString("restaurant",event.getRestaurantModel().getUid());
+       navController.navigate(R.id.nav_home,bundle);
+       navigationView.getMenu().clear();
+       navigationView.inflateMenu(R.menu.restaurant_detail_menu);
+       EventBus.getDefault().postSticky(new MenuInflateEvent(true));
+       EventBus.getDefault().postSticky(new HideFABCart(false));
+       countCartItem();
+    }
+
+    @Subscribe(sticky = true,threadMode = ThreadMode.MAIN)
+    public void onInflatMenu(MenuInflateEvent event) {
+
+        navigationView.getMenu().clear();
+        if(event.isShowDetail())
+            navigationView.inflateMenu(R.menu.restaurant_detail_menu);
+        else
+            navigationView.inflateMenu(R.menu.activity_home_drawer);
+
+    }
 }

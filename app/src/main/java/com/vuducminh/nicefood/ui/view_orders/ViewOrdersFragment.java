@@ -36,6 +36,8 @@ import com.vuducminh.nicefood.database.CartDatabase;
 import com.vuducminh.nicefood.database.CartItem;
 import com.vuducminh.nicefood.database.LocalCartDataSource;
 import com.vuducminh.nicefood.eventbus.CountCartEvent;
+import com.vuducminh.nicefood.eventbus.MenuItemBack;
+import com.vuducminh.nicefood.eventbus.MenuItemEvent;
 import com.vuducminh.nicefood.model.OrderModel;
 import com.vuducminh.nicefood.R;
 import com.vuducminh.nicefood.model.RefundRequestModel;
@@ -94,7 +96,10 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
 
     private void loadOrdersFromFirebase() {
         List<OrderModel> orderModelList = new ArrayList<>();
-        FirebaseDatabase.getInstance().getReference(CommonAgr.ORDER_REF)
+        FirebaseDatabase.getInstance()
+                .getReference(CommonAgr.RESTAURANT_REF)
+                .child(Common.currentRestaurant.getUid())
+                .child(CommonAgr.ORDER_REF)
                 .orderByChild("userId")
                 .equalTo(Common.currentUser.getUid())
                 .limitToLast(100)
@@ -145,7 +150,9 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
                                                 Map<String,Object> update_data = new HashMap<>();
                                                 update_data.put("orderStatus",-1);
                                                 FirebaseDatabase.getInstance()
-                                                        .getReference(CommonAgr.ORDER_REF)
+                                                        .getReference(CommonAgr.RESTAURANT_REF)
+                                                        .child(Common.currentRestaurant.getUid())
+                                                        .child(CommonAgr.ORDER_REF)
                                                         .child(orderModel.getOrderNumber())
                                                         .updateChildren(update_data)
                                                         .addOnFailureListener(new OnFailureListener() {
@@ -195,7 +202,9 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
 
 
                                                 FirebaseDatabase.getInstance()
-                                                        .getReference(CommonAgr.REQUEST_REFUND_MODEL)
+                                                        .getReference(CommonAgr.RESTAURANT_REF)
+                                                        .child(Common.currentRestaurant.getUid())
+                                                        .child(CommonAgr.REQUEST_REFUND_MODEL)
                                                         .child(orderModel.getOrderNumber())
                                                         .setValue(refundRequestModel)
                                                         .addOnFailureListener(new OnFailureListener() {
@@ -208,7 +217,9 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
                                                             Map<String,Object> update_data = new HashMap<>();
                                                             update_data.put("orderStatus",-1);
                                                             FirebaseDatabase.getInstance()
-                                                                    .getReference(CommonAgr.ORDER_REF)
+                                                                    .getReference(CommonAgr.RESTAURANT_REF)
+                                                                    .child(Common.currentRestaurant.getUid())
+                                                                    .child(CommonAgr.ORDER_REF)
                                                                     .child(orderModel.getOrderNumber())
                                                                     .updateChildren(update_data)
                                                                     .addOnFailureListener(new OnFailureListener() {
@@ -243,7 +254,9 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
                             OrderModel orderModel = ((MyOrderAdapter)recycler_orders.getAdapter()).getItemAtPosition(position);
 
                             FirebaseDatabase.getInstance()
-                                    .getReference(CommonAgr.SHIPPER_ORDER_REF)
+                                    .getReference(CommonAgr.RESTAURANT_REF)
+                                    .child(Common.currentRestaurant.getUid())
+                                    .child(CommonAgr.SHIPPER_ORDER_REF)
                                     .child(orderModel.getOrderNumber())
                                     .addListenerForSingleValueEvent(new ValueEventListener() {
                                         @Override
@@ -280,7 +293,8 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
                             OrderModel orderModel = ((MyOrderAdapter)recycler_orders.getAdapter()).getItemAtPosition(position);
 
                             dialog.show();
-                            cartDataSource.cleanCart(Common.currentUser.getUid())
+                            cartDataSource.cleanCart(Common.currentUser.getUid(),
+                                    Common.currentRestaurant.getUid())
                                     .subscribeOn(Schedulers.io())
                                     .observeOn(AndroidSchedulers.mainThread())
                                     .subscribe(new SingleObserver<Integer>() {
@@ -340,5 +354,11 @@ public class ViewOrdersFragment extends Fragment implements ILoadOrderCallbackLi
     public void onStop() {
         compositeDisposable.clear();
         super.onStop();
+    }
+
+    @Override
+    public void onDestroy() {
+        EventBus.getDefault().postSticky(new MenuItemBack());
+        super.onDestroy();
     }
 }

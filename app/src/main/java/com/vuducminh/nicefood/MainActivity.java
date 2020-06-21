@@ -48,6 +48,8 @@ import com.karumi.dexter.listener.single.PermissionListener;
 import com.vuducminh.nicefood.common.Common;
 import com.vuducminh.nicefood.common.CommonAgr;
 import com.vuducminh.nicefood.model.UserModel;
+import com.vuducminh.nicefood.remote.ICloudFunction;
+import com.vuducminh.nicefood.remote.RetrofitICloudClient;
 
 
 import java.util.Arrays;
@@ -110,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
         userRef = FirebaseDatabase.getInstance().getReference(CommonAgr.USER_REFERENCES);
         firebaseAuth = FirebaseAuth.getInstance();
         dialog = new SpotsDialog.Builder().setCancelable(false).setContext(this).build();
+//        cloudFunctions = RetrofitICloudClient.getInstance(Common.currentRestaurant.getPaymentUrl()).create(ICloudFunction.class);
         listener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
@@ -261,6 +264,22 @@ public class MainActivity extends AppCompatActivity {
                                 public void onComplete(@NonNull Task<Void> task) {
                                     if(task.isSuccessful()) {
 //                                    compositeDisposable.add(iCloudFunction.getToken()
+//                                            .subscribeOn(Schedulers.io())
+//                                            .observeOn(AndroidSchedulers.mainThread())
+//                                            .subscribe(new Consumer<BraintreeToken>() {
+//                                                @Override
+//                                                public void accept(BraintreeToken braintreeToken) throws Exception {
+//                                                    dialogInterface.dismiss();
+//                                                    Toast.makeText(MainActivity.this,"Congratulation ! Register success",Toast.LENGTH_SHORT).show();
+//                                                    goToHomeActivity(userModel,braintreeToken.getToken());
+//                                                }
+//                                            }, new Consumer<Throwable>() {
+//                                                @Override
+//                                                public void accept(Throwable throwable) throws Exception {
+//                                                    dialog.dismiss();
+//                                                    Toast.makeText(MainActivity.this,""+throwable.getMessage(),Toast.LENGTH_SHORT).show();
+//                                                }
+//                                            }));//                                    compositeDisposable.add(iCloudFunction.getToken()
 //                                            .subscribeOn(Schedulers.io())
 //                                            .observeOn(AndroidSchedulers.mainThread())
 //                                            .subscribe(new Consumer<BraintreeToken>() {

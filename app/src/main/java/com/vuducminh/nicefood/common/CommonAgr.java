@@ -14,6 +14,7 @@ public class CommonAgr {
     public static final String CATEGORY_REF = "Category";
     public static final int DEFAULT_COLUMN_COUNT = 0;
     public static final int FULL_WIDTH_COLUMN = 1;
+    public static final String REQUEST_REFUND_MODEL = "RequestRefund";
 
     public static final String COMMENT_REF = "Comments";
     public static final String FOOD_REF ="foods" ;
@@ -23,11 +24,9 @@ public class CommonAgr {
     public static final String TOKEN_REF = "Tokens";
     public static final String URL_FCM = "https://fcm.googleapis.com/";
     public static final String URL_MAP_GOOGLE = "https://maps.googleapis.com/";
-    public static final String REQUEST_REFUND_MODEL = "RequestRefund";
     public static final String SHIPPER_ORDER_REF = "ShippingOrderModel";
-    public static final String NEWS_TOPIC = "news";
     public static final String IS_SEND_IMAGE = "IS_SEND_IMAGE";
     public static final String IMAGE_URL = "IMAGE_URL";
 
-    public static String IS_SUBSCRIBE_NEWS = "IS_SUBSCRIBE_NEWS";
+    public static final String RESTAURANT_REF = "Restaurant";
 }

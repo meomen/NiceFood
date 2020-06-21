@@ -130,7 +130,9 @@ public class TrackingOrderActivity extends FragmentActivity implements OnMapRead
 
     private void subscribeShipperMove() {
         shipperRef = FirebaseDatabase.getInstance()
-                .getReference(CommonAgr.SHIPPER_ORDER_REF)
+                .getReference(CommonAgr.RESTAURANT_REF)
+                .child(Common.currentRestaurant.getUid())
+                .child(CommonAgr.SHIPPER_ORDER_REF)
                 .child(Common.currentShippingOrder.getKey());
 
         shipperRef.addValueEventListener(this);

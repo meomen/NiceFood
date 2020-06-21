@@ -8,10 +8,10 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class RetrofitICloudClient {
     private static Retrofit instance;
-    public static Retrofit getInstance() {
+    public static Retrofit getInstance(String Payment) {
         if(instance == null){
             instance = new Retrofit.Builder()
-                    .baseUrl(CommonAgr.URL_FUNCTION_FIREBASE)
+                    .baseUrl(Payment)
                     .addConverterFactory(GsonConverterFactory.create())
                     .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                     .build();

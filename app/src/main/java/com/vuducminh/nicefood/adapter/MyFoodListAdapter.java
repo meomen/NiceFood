@@ -68,19 +68,17 @@ public class MyFoodListAdapter extends RecyclerView.Adapter<MyFoodListAdapter.My
                 .append(foodModelList.get(position).getPrice()));
 
         // Event Bus
-        holder.setListener(new IRecyclerClickListener() {
-            @Override
-            public void onItemClickListener(View view, int pos) {
-                Common.selectedFood = foodModelList.get(pos);
-                Common.selectedFood.setKey(String.valueOf(pos));
-                EventBus.getDefault().postSticky(new FoodItemClick(true, foodModelList.get(pos)));
-            }
+        holder.setListener((view, pos) -> {
+            Common.selectedFood = foodModelList.get(pos);
+            Common.selectedFood.setKey(String.valueOf(pos));
+            EventBus.getDefault().postSticky(new FoodItemClick(true, foodModelList.get(pos)));
         });
 
         holder.img_quick_cart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 CartItem cartItem = new CartItem();
+                cartItem.setRestaurantId(Common.currentRestaurant.getUid());
                 cartItem.setUid(Common.currentUser.getUid());
                 cartItem.setUserPhone(Common.currentUser.getPhone());
 
@@ -98,7 +96,8 @@ public class MyFoodListAdapter extends RecyclerView.Adapter<MyFoodListAdapter.My
                         Common.categorySelected.getMenu_id(),
                         cartItem.getFoodId(),
                         cartItem.getFoodSize(),
-                        cartItem.getFoodAddon())
+                        cartItem.getFoodAddon(),
+                        Common.currentRestaurant.getUid())
                         .subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(new SingleObserver<CartItem>() {
