@@ -40,10 +40,12 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.karumi.dexter.Dexter;
+import com.karumi.dexter.MultiplePermissionsReport;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
 import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
+import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 import com.karumi.dexter.listener.single.PermissionListener;
 import com.vuducminh.nicefood.common.Common;
 import com.vuducminh.nicefood.common.CommonAgr;
@@ -118,26 +120,27 @@ public class MainActivity extends AppCompatActivity {
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
 
                 Dexter.withActivity(MainActivity.this)
-                        .withPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                        .withListener(new PermissionListener() {
+                        .withPermissions(Arrays.asList(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.READ_EXTERNAL_STORAGE,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA)
+                        )
+                        .withListener(new MultiplePermissionsListener() {
                             @Override
-                            public void onPermissionGranted(PermissionGrantedResponse response) {
-                                FirebaseUser user = firebaseAuth.getCurrentUser();
-                                if (user != null) {
-
-                                    checkUserFromFireBase(user);
-                                } else {
-                                    phoneLogin();
+                            public void onPermissionsChecked(MultiplePermissionsReport report) {
+                                if(report.areAllPermissionsGranted()) {
+                                    FirebaseUser user = firebaseAuth.getCurrentUser();
+                                    if(user  != null)
+                                        checkUserFromFireBase(user);
+                                    else
+                                        phoneLogin();
                                 }
+                                else
+                                    Toast.makeText(MainActivity.this,"You must accept all permissions",Toast.LENGTH_SHORT).show();
                             }
 
                             @Override
-                            public void onPermissionDenied(PermissionDeniedResponse response) {
-                                Toast.makeText(MainActivity.this,"You must enable this permisson to use app",Toast.LENGTH_SHORT).show();
-                            }
-
-                            @Override
-                            public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
+                            public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions, PermissionToken token) {
 
                             }
                         })

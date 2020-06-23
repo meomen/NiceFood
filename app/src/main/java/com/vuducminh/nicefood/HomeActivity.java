@@ -79,6 +79,7 @@ import java.util.Map;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 import dmax.dialog.SpotsDialog;
 import io.paperdb.Paper;
 import io.reactivex.SingleObserver;
@@ -113,6 +114,13 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
     @BindView(R.id.fab)
     CounterFab fab;
+    @BindView(R.id.fab_chat)
+    CounterFab fab_chat;
+
+    @OnClick(R.id.fab_chat)
+    public void onFadChatClick() {
+        startActivity(new Intent(this,ChatActivity.class));
+    }
 
     @Override
     protected void onResume() {
@@ -445,9 +453,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
     public void onHideFABEvent(HideFABCart event) {
         if(event.isHidden()) {
             fab.hide();
+            fab_chat.hide();
         }
         else {
             fab.show();
+            fab_chat.show();
         }
     }
 

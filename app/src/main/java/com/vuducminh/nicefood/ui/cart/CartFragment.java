@@ -975,6 +975,11 @@ public class CartFragment extends Fragment implements ILoadTimeFromFirebaseListe
     }
 
     @Override
+    public void onLoadOnlyTimeSuccess(long estimateTimeInMs) {
+
+    }
+
+    @Override
     public void onLoadtimeFailed(String message) {
         Toast.makeText(getContext(), "" + message, Toast.LENGTH_SHORT).show();
     }

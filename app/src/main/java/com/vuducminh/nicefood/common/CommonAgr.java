@@ -29,4 +29,6 @@ public class CommonAgr {
     public static final String IMAGE_URL = "IMAGE_URL";
 
     public static final String RESTAURANT_REF = "Restaurant";
+    public static final String CHAT_REF = "Chat";
+    public static final String CHAT_DETAIL_REF = "ChatDetail" ;
 }
