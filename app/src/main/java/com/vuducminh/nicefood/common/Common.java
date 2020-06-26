@@ -42,6 +42,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.regex.Matcher;
 
 import io.paperdb.Paper;
 
@@ -360,5 +361,10 @@ public class Common {
                result = result.substring(cut+1);
         }
         return result;
+    }
+
+    public static boolean isEmail(String emailStr) {
+        Matcher matcher = CommonAgr.VALID_EMAIL_ADDRESS_REGEX.matcher(emailStr);
+        return matcher.find();
     }
 }

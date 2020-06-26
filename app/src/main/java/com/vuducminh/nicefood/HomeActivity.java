@@ -13,6 +13,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.android.libraries.places.widget.Autocomplete;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -32,6 +33,7 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.navigation.NavigationView;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -152,8 +154,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         });
         drawer = findViewById(R.id.drawer_layout);
         navigationView = findViewById(R.id.nav_view);
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
+
         mAppBarConfiguration = new AppBarConfiguration.Builder(
                 R.id.nav_restaurant,
                 R.id.nav_home, R.id.nav_menu, R.id.nav_food_detail,
@@ -171,6 +172,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         Common.setSpanString("Hey, ",Common.currentUser.getName(),tv_user);
 
         EventBus.getDefault().postSticky(new HideFABCart(true));
+        navController.navigate(R.id.nav_restaurant);
     }
 
     private void initPlaceClient() {
@@ -304,7 +306,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         View itemView = LayoutInflater.from(this).inflate(R.layout.layout_register, null);
         EditText edt_name = (EditText) itemView.findViewById(R.id.edt_name);
         TextView tv_address_detail = (TextView)itemView.findViewById(R.id.tv_address_detail);
-
+        TextInputLayout tv_input_layout = (TextInputLayout) itemView.findViewById(R.id.phone_input_layout);
         EditText edt_phone = (EditText) itemView.findViewById(R.id.edt_phone);
 
         places_fragment = (AutocompleteSupportFragment)getSupportFragmentManager()
@@ -323,6 +325,11 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                 Toast.makeText(HomeActivity.this,""+status.getStatusMessage(),Toast.LENGTH_SHORT).show();
             }
         });
+
+        if(Common.isEmail(Common.currentUser.getPhone()))
+            tv_input_layout.setHint("Email");
+        else
+            tv_address_detail.setHint("Phone");
 
 
         // Dổ dữ liệu và bắt sự kiện
@@ -429,6 +436,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     protected void onStop() {
+        EventBus.getDefault().removeAllStickyEvents();
         EventBus.getDefault().unregister(this);
         compositeDisposable.clear();
         super.onStop();

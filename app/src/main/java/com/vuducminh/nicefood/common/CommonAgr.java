@@ -1,5 +1,7 @@
 package com.vuducminh.nicefood.common;
 
+import java.util.regex.Pattern;
+
 public class CommonAgr {
 
     // CODE REQUEST
@@ -7,6 +9,10 @@ public class CommonAgr {
 
     // URL
     public static final String URL_FUNCTION_FIREBASE ="https://us-central1-nicefood-16db8.cloudfunctions.net/widgets";
+
+    // REGEX email
+    public static final Pattern VALID_EMAIL_ADDRESS_REGEX =
+            Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
 
     public static final String USER_REFERENCES = "Users";
     public static final String POPULAR_CATEGORY_REF = "MostPopular";

@@ -54,6 +54,8 @@ import com.vuducminh.nicefood.remote.ICloudFunction;
 import com.vuducminh.nicefood.remote.RetrofitICloudClient;
 
 
+import org.greenrobot.eventbus.EventBus;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -90,6 +92,7 @@ public class MainActivity extends AppCompatActivity {
         if (listener != null) {
             firebaseAuth.removeAuthStateListener(listener);
         }
+
         compositeDisposable.clear();
         super.onStop();
     }
