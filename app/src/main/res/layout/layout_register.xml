@@ -17,12 +17,6 @@
             android:layout_height="wrap_content"/>
     </com.google.android.material.textfield.TextInputLayout>
 
-
-    <fragment
-        android:id="@+id/places_autocomplete_fragment"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"/>
     <TextView
         android:id="@+id/tv_address_detail"
         android:layout_width="match_parent"
@@ -33,7 +27,11 @@
         android:fontFamily="@font/brandon_medium"
         android:textSize="16sp"/>
 
-
+    <fragment
+        android:id="@+id/places_autocomplete_fragment"
+        android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/phone_input_layout"

@@ -81,7 +81,7 @@
                 android:layout_marginBottom="18dp"
                 android:layout_marginLeft="8dp"
                 android:layout_marginTop="8dp"
-                app:backGroundColor="@color/colorAccent"
+                app:backGroundColor="@color/colorPrimary"
                 app:finalNumber="20"
                 app:initialNumber="1"
                 app:textColor="@android:color/white"

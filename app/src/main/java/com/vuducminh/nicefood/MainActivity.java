@@ -160,9 +160,9 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                         if (dataSnapshot.exists()) {
-                            Toast.makeText(MainActivity.this, "You alredy register", Toast.LENGTH_SHORT).show();
 
                             UserModel userModel = dataSnapshot.getValue(UserModel.class);
+                            Toast.makeText(MainActivity.this, "Welcome back, "+userModel.getName() , Toast.LENGTH_SHORT).show();
                             goToHomeActivity(userModel);
 
 //                            compositeDisposable.add(iCloudFunction.getToken()
@@ -302,7 +302,6 @@ public class MainActivity extends AppCompatActivity {
 //                                                    Toast.makeText(MainActivity.this,""+throwable.getMessage(),Toast.LENGTH_SHORT).show();
 //                                                }
 //                                            }));
-
                                         dialogInterface.dismiss();
                                         Toast.makeText(MainActivity.this,"Congratulation ! Register success",Toast.LENGTH_SHORT).show();
                                         goToHomeActivity(userModel);

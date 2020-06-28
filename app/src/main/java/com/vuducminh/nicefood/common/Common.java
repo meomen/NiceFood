@@ -55,6 +55,7 @@ public class Common {
     public static ShippingOrderModel currentShippingOrder;
     public static RestaurantModel currentRestaurant;
 
+    // Chỉnh format Số tiền
     public static String formatPrice(double price) {
         if (price != 0) {
             DecimalFormat df = new DecimalFormat("#,##0.00");
@@ -64,6 +65,7 @@ public class Common {
         } else return "0,00";
     }
 
+    // Tính thêm tiền khi Food có thêm Addon và Size
     public static Double calculateExtraPrice(SizeModel userSelectedSize, List<AddonModel> userSelectedAddon) {
         Double result = 0.0;
 
@@ -93,24 +95,27 @@ public class Common {
         }
     }
 
+    // chỉnh font SpanString
     public static void setSpanString(String welcome, String name, TextView tv_user) {
         SpannableStringBuilder builder = new SpannableStringBuilder();
         builder.append(welcome);
         SpannableString spannableString = new SpannableString(name);
-        StyleSpan boldSpan = new StyleSpan(Typeface.BOLD);
-        spannableString.setSpan(boldSpan, 0, name.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        StyleSpan boldSpan = new StyleSpan(Typeface.BOLD);            // In Đậm
+        spannableString.setSpan(boldSpan, 0, name.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);     // Chữ Nghiên
         builder.append(spannableString);
         tv_user.setText(builder, TextView.BufferType.SPANNABLE);
     }
 
+    // Tạo số ID cho order
     public static String creteOrderNumber() {
         return new StringBuilder()
-                .append(System.currentTimeMillis())        // Get current time in mini giây
-                .append(Math.abs(new Random().nextInt()))  // Add random number to block same order at same time
+                .append(System.currentTimeMillis())        // Lấy thời gian hiện tại, dạng mili giây
+                .append(Math.abs(new Random().nextInt()))  // Thêm số ngẫu nhiên để tránh nhầm lẫn với order cùng thời gian tạo
                 .toString();
 
     }
 
+    // Thứ trong ngày
     public static String getDateOfWeek(int i) {
         switch (i) {
             case 1: {
@@ -140,6 +145,7 @@ public class Common {
         }
     }
 
+    // <key-value> Trạng thái order
     public static String convertStatusToText(int orderStatus) {
         switch (orderStatus) {
             case 0: {
@@ -159,6 +165,7 @@ public class Common {
         }
     }
 
+    // Tạo thông báo
     public static void showNotification(Context context, int id, String title, String content, Intent intent) {
         PendingIntent pendingIntent = null;
         if (intent != null) {
@@ -166,10 +173,10 @@ public class Common {
         }
         String NOTIFICATION_CHANNEL_ID = "minh_vu_nice_food_java";
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {             // Nếu API Android >= 26
             NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
                     "Nice Food Java", NotificationManager.IMPORTANCE_DEFAULT);
-            notificationChannel.setDescription("Nice Food Java");
+            notificationChannel.setDescription("Nice Food Java");           // Mô tả
             notificationChannel.enableLights(true);
             notificationChannel.setLightColor(Color.RED);
             notificationChannel.setVibrationPattern(new long[]{0, 1000, 500, 1000});
@@ -179,6 +186,7 @@ public class Common {
 
         }
 
+        // tạo giao diện thông báo
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID);
         builder.setContentTitle(title)
                 .setContentText(content)
@@ -187,12 +195,13 @@ public class Common {
                 .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_restaurant_menu_black_24dp));
 
         if (pendingIntent != null) {
-            builder.setContentIntent(pendingIntent);
+            builder.setContentIntent(pendingIntent);     //Nạp nội dụng thông báo
         }
         Notification notification = builder.build();
-        notificationManager.notify(id, notification);
+        notificationManager.notify(id, notification);  //hiện thông báo
     }
 
+    // Cập nhận Token
     public static void updateToken(Context context, String newToken) {
        if(Common.currentUser != null) {
            FirebaseDatabase.getInstance()
@@ -205,6 +214,7 @@ public class Common {
        }
     }
 
+    //
     public static String createTopicOrder() {
         return new StringBuilder("/topics/")
                 .append(Common.currentRestaurant.getUid())

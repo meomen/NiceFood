@@ -172,6 +172,8 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         Common.setSpanString("Hey, ",Common.currentUser.getName(),tv_user);
 
         EventBus.getDefault().postSticky(new HideFABCart(true));
+
+        navController.popBackStack();
         navController.navigate(R.id.nav_restaurant);
     }
 
@@ -201,13 +203,21 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         switch (item.getItemId()) {
             case R.id.nav_restaurant: {
                 if(item.getItemId() != menuClickId) {
+                    navController.popBackStack();
                     navController.navigate(R.id.nav_restaurant);
                 }
                 break;
             }
             case R.id.nav_home: {
                 if(item.getItemId() != menuClickId) {
-                    navController.navigate(R.id.nav_home);
+                    if(Common.currentRestaurant != null) {
+                        Bundle bundle = new Bundle();
+                        bundle.putString("restaurant",Common.currentRestaurant.getUid());
+                        navController.navigate(R.id.nav_home,bundle);
+                    }
+                    else {
+                        navController.navigate(R.id.nav_home);
+                    }
                     EventBus.getDefault().postSticky(new MenuInflateEvent(true));
                 }
                 break;
@@ -329,7 +339,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         if(Common.isEmail(Common.currentUser.getPhone()))
             tv_input_layout.setHint("Email");
         else
-            tv_address_detail.setHint("Phone");
+            tv_input_layout.setHint("Phone");
 
 
         // Dổ dữ liệu và bắt sự kiện
@@ -347,7 +357,7 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
         builder.setPositiveButton("UPDATE", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                if(placeSelected != null) {
+                if(placeSelected != null || Common.currentUser.getAddress() != null) {
                     if(TextUtils.isEmpty(edt_name.getText().toString())) {
                         Toast.makeText(HomeActivity.this,"Plaeasr enter your name",Toast.LENGTH_SHORT).show();
                         return;
@@ -356,8 +366,10 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     Map<String,Object> update_date = new HashMap<>();
                     update_date.put("name",edt_name.getText().toString());
                     update_date.put("address",tv_address_detail.getText().toString());
-                    update_date.put("lat",placeSelected.getLatLng().latitude);
-                    update_date.put("lng",placeSelected.getLatLng().longitude);
+                    if(placeSelected != null) {
+                        update_date.put("lat",placeSelected.getLatLng().latitude);
+                        update_date.put("lng",placeSelected.getLatLng().longitude);
+                    }
 
                     FirebaseDatabase.getInstance()
                             .getReference(CommonAgr.USER_REFERENCES)
@@ -375,8 +387,10 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                                 Toast.makeText(HomeActivity.this,"Update Info success",Toast.LENGTH_LONG).show();
                                 Common.currentUser.setName(update_date.get("name").toString());
                                 Common.currentUser.setAddress(update_date.get("address").toString());
-                                Common.currentUser.setLat(Double.valueOf(update_date.get("lat").toString()));
-                                Common.currentUser.setLng(Double.valueOf(update_date.get("lng").toString()));
+                                if (placeSelected != null) {
+                                    Common.currentUser.setLat(Double.valueOf(update_date.get("lat").toString()));
+                                    Common.currentUser.setLng(Double.valueOf(update_date.get("lng").toString()));
+                                }
 
                             });
                 }
@@ -640,7 +654,6 @@ public class HomeActivity extends AppCompatActivity implements NavigationView.On
                     @Override
                     public void onError(Throwable e) {
                         if(!e.getMessage().contains("query returned empty")) {
-//                            Toast.makeText(HomeActivity.this,"[COUNT CART]"+e.getMessage(),Toast.LENGTH_SHORT).show();
                             Log.e("Count_Error",e.getMessage());
                             fab.setCount(0);
                         }
