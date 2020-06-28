@@ -7,10 +7,10 @@ public class CommonAgr {
     // CODE REQUEST
     public static final int APP_REQUEST_CODE = 1999;  //request auth facebook activity to mainactivity
 
-    // URL
+    // URL Function_firebase
     public static final String URL_FUNCTION_FIREBASE ="https://us-central1-nicefood-16db8.cloudfunctions.net/widgets";
 
-    // REGEX email
+    // REGEX email  (Biểu thức chính quy)
     public static final Pattern VALID_EMAIL_ADDRESS_REGEX =
             Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
 

@@ -26,6 +26,9 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 
+/*Apdate tạo item Cart (Giỏ hàng)
+CategolyFragment ở CategoryFragment sử dụng
+ */
 public class MyCategoriesAdapter extends RecyclerView.Adapter<MyCategoriesAdapter.MyViewHodler> {
 
     Context context;
@@ -36,6 +39,7 @@ public class MyCategoriesAdapter extends RecyclerView.Adapter<MyCategoriesAdapte
         this.categoryModelList = categoryModelList;
     }
 
+    // liên kết giao diện(layout)
     @NonNull
     @Override
     public MyViewHodler onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -43,12 +47,13 @@ public class MyCategoriesAdapter extends RecyclerView.Adapter<MyCategoriesAdapte
         return new MyViewHodler(view);
     }
 
+    // Đổ dữ liệu vào giao diện
     @Override
     public void onBindViewHolder(@NonNull MyViewHodler holder, int position) {
         Glide.with(context).load(categoryModelList.get(position).getImage()).into(holder.img_category);
         holder.tv_category.setText(new StringBuffer(categoryModelList.get(position).getName()));
 
-        //Sự kiện
+        //Bắt sự kiện
         holder.setListener(new IRecyclerClickListener() {
             @Override
             public void onItemClickListener(View view, int pos) {
@@ -94,18 +99,20 @@ public class MyCategoriesAdapter extends RecyclerView.Adapter<MyCategoriesAdapte
         }
     }
 
+
+    //Kích thước item trong RecyclerView  tùy số lượng phần tử trong List
     @Override
     public int getItemViewType(int position) {
-        if(categoryModelList.size() == 1) {
-            return CommonAgr.DEFAULT_COLUMN_COUNT;
+        if(categoryModelList.size() == 1) {        //    List có 1 phần tử
+            return CommonAgr.DEFAULT_COLUMN_COUNT;  //   thì item rộng 1 nửa màn hình
         }
         else {
-            if(categoryModelList.size() % 2 == 0) {
-                return CommonAgr.DEFAULT_COLUMN_COUNT;
+            if(categoryModelList.size() % 2 == 0) {     // Nếu số lượng phần trử chắn
+                return CommonAgr.DEFAULT_COLUMN_COUNT;   //thì item rộng 1 nửa màn hình
             }
-            else {
+            else {  //Lẻ
                 if(position > 1 && position == categoryModelList.size()-1)
-                    return CommonAgr.FULL_WIDTH_COLUMN;
+                    return CommonAgr.FULL_WIDTH_COLUMN;    // Phần tử cuối cùng, rộng toàn màn hình
                 else
                     return CommonAgr.DEFAULT_COLUMN_COUNT;
             }

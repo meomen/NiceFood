@@ -29,6 +29,9 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 
+/*Apdate tạo item Cart (Giỏ hàng)
+CartList ở CartFragment sử dụng
+ */
 public class MyCartAdapter extends RecyclerView.Adapter<MyCartAdapter.MyViewHolder> {
 
     Context context;
@@ -41,6 +44,7 @@ public class MyCartAdapter extends RecyclerView.Adapter<MyCartAdapter.MyViewHold
         this.gson = new Gson();
     }
 
+    // liên kết giao diện(layout)
     @NonNull
     @Override
     public MyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -50,6 +54,8 @@ public class MyCartAdapter extends RecyclerView.Adapter<MyCartAdapter.MyViewHold
 
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
+
+        // Đổ dữ liệu vào giao diện
         CartItem cartItem = cartItemList.get(position);
         Glide.with(context).load(cartItem.getFoodImage()).into(holder.img_cart);
 
@@ -59,26 +65,26 @@ public class MyCartAdapter extends RecyclerView.Adapter<MyCartAdapter.MyViewHold
                 append(cartItem.getFoodPrice() + cartItem.getFoodExtraPrice()));
 
         if(cartItemList.get(position).getFoodSize() != null) {
-            if(cartItemList.get(position).getFoodSize().equals("Default")) {
+            if(cartItemList.get(position).getFoodSize().equals("Default")) {          //nếu size = "Default"
                 holder.tv_food_size.setText(new StringBuilder("Size: ").append("Default"));
             }
-            else {
+            else {                                                                      // nếu size ở dạng json, chuyển json -> object
                 SizeModel sizeModel = gson.fromJson(cartItemList.get(position).getFoodSize(),new TypeToken<SizeModel>(){}.getType());
                 holder.tv_food_size.setText(new StringBuilder("Size: ").append(sizeModel.getName()));
             }
         }
 
         if(cartItemList.get(position).getFoodAddon() != null) {
-            if(cartItemList.get(position).getFoodAddon().equals("Default"))
+            if(cartItemList.get(position).getFoodAddon().equals("Default"))           //nếu addon = "Default"
                 holder.tv_food_addon.setText(new StringBuilder("Addon: ").append("Default"));
-            else {
+            else {                                                                  // nếu addon ở dạng json, chuyển json -> object
                 List<AddonModel> addonModels = gson.fromJson(cartItemList.get(position).getFoodAddon(),
                         new TypeToken<List<AddonModel>>(){}.getType());
                 holder.tv_food_addon.setText(new StringBuilder("Addon: ").append(Common.getListAddon(addonModels)));
             }
         }
 
-        holder.numberButton.setNumber(String.valueOf(cartItem.getFoodQuantity()));
+        holder.numberButton.setNumber(String.valueOf(cartItem.getFoodQuantity()));     // số lượng đơn hàng
         //Event
         holder.numberButton.setOnValueChangeListener(new ElegantNumberButton.OnValueChangeListener() {
             @Override

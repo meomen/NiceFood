@@ -20,6 +20,9 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 
+/*Apdate tạo item Cart (Giỏ hàng)
+ChatFragment ở ChatFragment sử dụng
+ */
 public class MyCommentAdapter extends RecyclerView.Adapter<MyCommentAdapter.MyViewHolder>{
 
     private Context context;

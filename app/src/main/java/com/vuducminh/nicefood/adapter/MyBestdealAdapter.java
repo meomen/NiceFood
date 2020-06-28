@@ -21,7 +21,13 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 
+
+//Apdate tạo item Món ăn đề suất( Bestdeal)
+//BestdealList ở Home Fragment sử dụng
 public class MyBestdealAdapter extends LoopingPagerAdapter<BestDealModel> {
+
+    //Liên kết phần tử giao diện(weight)
+    //Sử dụng thư viện Butter Knife
 
     @BindView(R.id.img_best_deal)
     ImageView img_best_deal;
@@ -34,6 +40,7 @@ public class MyBestdealAdapter extends LoopingPagerAdapter<BestDealModel> {
         super(context, itemList, isInfinite);
     }
 
+    // liên kết giao diện(layout)
     @Override
     protected View inflateView(int viewType, ViewGroup container, int listPosition) {
         return LayoutInflater.from(context).inflate(R.layout.layout_best_deal_item,container,false);
@@ -43,6 +50,7 @@ public class MyBestdealAdapter extends LoopingPagerAdapter<BestDealModel> {
     protected void bindView(View convertView, int listPosition, int viewType) {
         unbinder = ButterKnife.bind(this,convertView);
 
+        // Đổ dữ liệu vào giao diện
         Glide.with(convertView).load(itemList.get(listPosition).getImage()).into(img_best_deal);
         tv_best_deal.setText(itemList.get(listPosition).getName());
 

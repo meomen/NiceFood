@@ -48,6 +48,7 @@ import io.paperdb.Paper;
 
 public class Common {
 
+    // Các biến sử dụng trong phạm vi toàn bộ app
     public static UserModel currentUser;
     public static CategoryModel categorySelected;
     public static FoodModel selectedFood;
@@ -165,42 +166,6 @@ public class Common {
         }
     }
 
-    // Tạo thông báo
-    public static void showNotification(Context context, int id, String title, String content, Intent intent) {
-        PendingIntent pendingIntent = null;
-        if (intent != null) {
-            pendingIntent = PendingIntent.getActivity(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        }
-        String NOTIFICATION_CHANNEL_ID = "minh_vu_nice_food_java";
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {             // Nếu API Android >= 26
-            NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
-                    "Nice Food Java", NotificationManager.IMPORTANCE_DEFAULT);
-            notificationChannel.setDescription("Nice Food Java");           // Mô tả
-            notificationChannel.enableLights(true);
-            notificationChannel.setLightColor(Color.RED);
-            notificationChannel.setVibrationPattern(new long[]{0, 1000, 500, 1000});
-            notificationChannel.enableVibration(true);
-
-            notificationManager.createNotificationChannel(notificationChannel);
-
-        }
-
-        // tạo giao diện thông báo
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID);
-        builder.setContentTitle(title)
-                .setContentText(content)
-                .setAutoCancel(true)
-                .setSmallIcon(R.mipmap.ic_launcher_round)
-                .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_restaurant_menu_black_24dp));
-
-        if (pendingIntent != null) {
-            builder.setContentIntent(pendingIntent);     //Nạp nội dụng thông báo
-        }
-        Notification notification = builder.build();
-        notificationManager.notify(id, notification);  //hiện thông báo
-    }
-
     // Cập nhận Token
     public static void updateToken(Context context, String newToken) {
        if(Common.currentUser != null) {
@@ -214,14 +179,9 @@ public class Common {
        }
     }
 
-    //
-    public static String createTopicOrder() {
-        return new StringBuilder("/topics/")
-                .append(Common.currentRestaurant.getUid())
-                .append("_")
-                .append("new_order")
-                .toString();
-    }
+    // Tính và tìm đoạn đường từ shipper đến điểm giao hàng
+    // Tham khảo từ: https://stackoverflow.com/questions/15924834/decoding-polyline-with-new-google-maps-api
+    // Chức năng Tracking Order( Theo dõi đơn hàng) sử dụng hàm này
     public static List<LatLng> decodePoly(String encode) {
         List poly = new ArrayList();
         int index = 0,len = encode.length();
@@ -252,10 +212,21 @@ public class Common {
         return poly;
     }
 
-    public static float getBearing(LatLng begin, LatLng end) {
-        double lat = Math.abs(begin.latitude - end.latitude);
-        double lng = Math.abs(begin.longitude - end.longitude);
 
+    // Tính góc xoay cho icon Shipper khi đang di chuyển
+    // Chức năng Tracking Order( Theo dõi đơn hàng) sử dụng hàm này
+    public static float getBearing(LatLng begin, LatLng end) {
+        double lat = Math.abs(begin.latitude - end.latitude);     //Vĩ Độ
+        double lng = Math.abs(begin.longitude - end.longitude);   //Kinh Độ
+
+        /*Từ điểm xuât phát, điểm đến có 4 trường hợp:
+           1: Vĩ độ cao hơn, Kinh độ cao hơn (Góc Trên-Phải)
+           2: Vĩ độ thấp hơn, Kình độ cao hơn (Góc Dưới-Phải)
+           3: Vĩ độ thấp hơn, Kình độ thấp hơn (Góc Dưới-Trái)
+           4: Vĩ độ cao hơn, Kình độ thấp hơn (Góc Trên-Trái)
+
+           Tương ứng với mỗi trường hợp sẽ là 4 cách tính
+         */
 
         if(begin.latitude < end.latitude && begin.longitude < end.longitude) {
             return (float)(Math.toDegrees(Math.atan(lng/lat)));
@@ -272,6 +243,8 @@ public class Common {
         return -1;
     }
 
+    // Get Addon(Phần kèm thêm của Food)
+    // Từ List Addon, chuyển dạng Stirng "addon1,addon2,addon3,.."
     public static String getListAddon(List<AddonModel> addonModels) {
         StringBuilder result = new StringBuilder();
         for(AddonModel addonModel: addonModels) {
@@ -283,6 +256,8 @@ public class Common {
         return result.substring(0,result.length()-1);
     }
 
+    // Tìm Food trong Ds bằng ID
+    // Chức năng Search sử dùng hàm này
     public static FoodModel findFoodInListById(CategoryModel categoryModel, String foodId) {
         if(categoryModel.getFoods() != null && categoryModel.getFoods().size() > 0) {
             for (FoodModel foodModel: categoryModel.getFoods()) {
@@ -292,11 +267,49 @@ public class Common {
             }
             return null;
         }
-        else {
+        else
             return null;
-        }
     }
 
+    // Tạo giao diện thông báo
+    // Nội dung thông báo nhận từ Server
+    public static void showNotification(Context context, int id, String title, String content, Intent intent) {
+        PendingIntent pendingIntent = null;
+        if (intent != null) {
+            pendingIntent = PendingIntent.getActivity(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        }
+        String NOTIFICATION_CHANNEL_ID = "minh_vu_nice_food_java";
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {             // Nếu API Android >= 26
+            NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,     //Tọa giao diện
+                    "Nice Food Java", NotificationManager.IMPORTANCE_DEFAULT);
+            notificationChannel.setDescription("Nice Food Java");
+            notificationChannel.enableLights(true);
+            notificationChannel.setLightColor(Color.RED);
+            notificationChannel.setVibrationPattern(new long[]{0, 1000, 500, 1000});
+            notificationChannel.enableVibration(true);
+
+            notificationManager.createNotificationChannel(notificationChannel);  //Tạo thông báo
+
+        }
+
+        // tạo giao diện thông báo
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID);
+        builder.setContentTitle(title)
+                .setContentText(content)
+                .setAutoCancel(true)
+                .setSmallIcon(R.mipmap.ic_launcher_round)
+                .setLargeIcon(BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_restaurant_menu_black_24dp));
+
+        if (pendingIntent != null) {
+            builder.setContentIntent(pendingIntent);     //Nạp nội dụng thông báo
+        }
+        Notification notification = builder.build();
+        notificationManager.notify(id, notification);  //hiện thông báo
+    }
+
+    // Tạo giao diện thông báo có hình ảnh
+    // Nội dung thông báo nhận từ Server
     public static void showNotificationBigStyle(Context context, int id, String title, String content, Bitmap bitmap, Intent intent) {
         PendingIntent pendingIntent = null;
         if (intent != null) {
@@ -332,6 +345,16 @@ public class Common {
         notificationManager.notify(id, notification);
     }
 
+    // Tọa Topic cho Notification order gửi cho App Server
+    public static String createTopicOrder() {
+        return new StringBuilder("/topics/")
+                .append(Common.currentRestaurant.getUid())
+                .append("_")
+                .append("new_order")
+                .toString();
+    }
+
+    //Tạo topic cho Notification news gửi cho App Server
     public static String createTopicNews() {
         return new StringBuilder("/topics/")
                 .append(Common.currentRestaurant.getUid())
@@ -340,6 +363,9 @@ public class Common {
                 .toString();
     }
 
+
+    // Tạo ID cho room Chat giữa client và server
+    // 2 tham số đầu vào là ID của restaurant và ID của user
     public static String generateChatRoomId(String a, String b) {
         if(a.compareTo(b) > 0)
             return new StringBuilder(a).append(b).toString();
@@ -351,6 +377,8 @@ public class Common {
             .toString();
     }
 
+    // Lấy đường dẫn nơi chứa ảnh
+    // CHức năng Chat sử dụng hàm này để chứa ảnh
     public static String getFileName(ContentResolver contentResolver, Uri fileUri) {
         String result = null;
         if(fileUri.getScheme().equals("content")) {
@@ -373,6 +401,8 @@ public class Common {
         return result;
     }
 
+    // Kiểm tra String đầu vào có phải dạng địa chỉ Email hay không
+    // Chức năng Login sử dụng hàm này
     public static boolean isEmail(String emailStr) {
         Matcher matcher = CommonAgr.VALID_EMAIL_ADDRESS_REGEX.matcher(emailStr);
         return matcher.find();
